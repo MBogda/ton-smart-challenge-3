@@ -33,35 +33,17 @@
   (14, 14)         | (14,14); (5,3)
 -}
 
-;; testable
-() recv_internal (slice in_msg_body) impure {
-    (int score, int value, cell msg) = in_msg_body~unpack();
-    ;; load number of current messages
-    ;; if new can be added withour structure reformat - add
-    ;; else - reformat structure
-    ;; 1-4 cells - directly in storage cell
-    ;; 5-7 cells - first 4 in first parent cell; others directly in storage cell
-    ;; 8-11 cells - first 4 in first parent cell; second 4 in second parent cell; third 3 in third parent cell
-    (slice storage_sl, int current_number) = read_current_number();
-    if ((current_number == 0) | (current_number == 4) | (current_number == 7)) {
-        reformat(storage_sl, current_number, score, value, msg);
-    } else {
-        if (current_number == 11) {
-            extract_and_send(storage_sl, score, value, msg);
-        } else {
-            add_message(storage_sl, current_number, score, value, msg);
-        }
-    }
-}
+;; =============== common utils =============================
 
-(slice, int, int, cell) unpack(slice sl) inline_ref {
+(slice, (int, int, cell)) unpack(slice sl) inline_ref {
     int score = sl~load_uint(32);
     int value = sl~load_coins();
     cell msg = sl~load_ref();
-    return (sl, score, value, msg);
+    return (sl, (score, value, msg));
 }
 
-builder pack(builder bl, int score, int value, cell msg) inline_ref {
+(builder) pack(builder bl, (int, int, cell) value) inline_ref {
+    (int score, int value, cell msg) = value;
     return bl.store_uint(score, 32).store_coins(value).store_ref(msg);
 }
 
@@ -70,49 +52,53 @@ builder pack(builder bl, int score, int value, cell msg) inline_ref {
     if (storage_sl.slice_empty?()) {
         return (storage_sl, 0);
     }
-    return storage_sl~load_uint(4);
+    return storage_sl.load_uint(4);
 }
 
 builder write_current_number(int current_number) inline_ref {
-    return builder storage_bl = begin_cell().store_uint(current_number, 4);
+    return begin_cell().store_uint(current_number, 4);
 }
 
-() add_message(slice storage_sl, int current_number, int score, int value, cell msg) impure inline {
+;; =============== add_message =============================
+
+() add_message(slice storage_sl, int current_number, (int, int, cell) tupled_msg) impure inline {
     builder storage_bl = write_current_number(current_number + 1);
     if (current_number < 4) {
         ;; 1, 2 or 3
         repeat (3) {
             ifnot (storage_sl.slice_refs_empty?()) {
-                storage_bl.pack(storage_sl~unpack());
+                storage_bl = storage_bl.pack(storage_sl~unpack());
             }
         }
-        storage_bl.pack(score, value, msg).end_cell().set_data();
+        storage_bl = storage_bl.pack(tupled_msg);
+        storage_bl.end_cell().set_data();
     } else {
         if (current_number < 7) {
             ;; 5, 6
-            storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
+            storage_bl = storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
             repeat (2) {
                 ifnot (storage_sl.slice_refs_empty?()) {
-                    storage_bl.pack(storage_sl~unpack());
+                    storage_bl = storage_bl.pack(storage_sl~unpack());
                 }
             }
-            storage_bl.pack(score, value, msg).end_cell().set_data();
+            storage_bl = storage_bl.pack(tupled_msg);
+            storage_bl.end_cell().set_data();
         } else {
             if (current_number < 10) {
                 ;; 8, 9
-                storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
-                storage_bl.store_ref(storage_sl~load_ref());    ;; second node as is
+                storage_bl = storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
+                storage_bl = storage_bl.store_ref(storage_sl~load_ref());    ;; second node as is
 
-                slice third_sl = storage_sl~load_ref();
+                slice third_sl = storage_sl~load_ref().begin_parse();
                 builder third_bl = begin_cell();
                 ;; possible 9th message
                 ifnot (third_sl.slice_refs_empty?()) {
-                    third_bl.pack(third_sl~unpack());
+                    third_bl = third_bl.pack(third_sl~unpack());
                 }
                 ;; new message (9th or 10th)
-                third_bl.pack(score, value, msg);
+                third_bl = third_bl.pack(tupled_msg);
 
-                storage_bl.store_ref(third_bl.end_cell());
+                storage_bl = storage_bl.store_ref(third_bl.end_cell());
                 storage_bl.end_cell().set_data();
             } else {
                 if (current_number == 10) {
@@ -125,52 +111,52 @@ builder write_current_number(int current_number) inline_ref {
                             builder node_bl = begin_cell();
                             repeat (4) {
                                 ifnot (node_sl.slice_refs_empty?()) {
-                                    node_bl.pack(node_sl~unpack());
+                                    node_bl = node_bl.pack(node_sl~unpack());
                                 } else {
                                     ifnot (packed) {
-                                        node_bl.pack(score, value, msg);
+                                        node_bl = node_bl.pack(tupled_msg);
                                         packed = -1;
                                     }
                                 }
                             }
-                            storage_bl.store_ref(node_bl.end_cell());
+                            storage_bl = storage_bl.store_ref(node_bl.end_cell());
                         } else {
-                            storage_bl.store_ref(storage_sl~load_ref());
+                            storage_bl = storage_bl.store_ref(storage_sl~load_ref());
                         }
                     }
+
+                    storage_bl.end_cell().set_data();
                 }
             }
         }
     }
 }
 
-() reformat(slice storage_sl, int current_number, int score, int value, cell msg) impure inline {
+;; =============== reformat =============================
+
+() reformat(slice storage_sl, int current_number, (int, int, cell) tupled_msg) impure inline {
     builder storage_bl = write_current_number(current_number + 1);
     if (current_number == 0) {
-        storage_bl.pack(score, value, msg).end_cell().set_data();
+        storage_bl.pack(tupled_msg).end_cell().set_data();
     } else {
         if (current_number == 4) {
             ;; cell first = begin_cell().store_slice(storage_sl).end_cell();
             builder first_bl = begin_cell();
             repeat (4) {
-                (int score, int value, cell msg) = storage_sl~unpack();
-                first_bl.pack(score, value, msg);
+                first_bl = first_bl.pack(storage_sl~unpack());
             }
             cell first = first_bl.end_cell();
             storage_bl.store_ref(first)
-                    .pack(score, value, msg)
+                    .pack(tupled_msg)
                     .end_cell().set_data();
         } else {
             if (current_number == 7) {
-                cell first = storage_bl~load_ref();
+                cell first = storage_sl~load_ref();
                 builder second_bl = begin_cell();
                 repeat (3) {
-                    (int score, int value, cell msg) = storage_sl~unpack();
-                    second_bl.pack(score, value, msg);
+                    second_bl = second_bl.pack(storage_sl~unpack());
                 }
-                cell second = second_bl
-                        .pack(score, value, msg)
-                        .end_cell();
+                cell second = second_bl.pack(tupled_msg).end_cell();
                 cell third = begin_cell().end_cell();
                 storage_bl.store_ref(first).store_ref(second).store_ref(third)
                         .end_cell().set_data();
@@ -179,50 +165,21 @@ builder write_current_number(int current_number) inline_ref {
     }
 }
 
-() extract_and_send(slice storage_sl, int score, int value, cell msg) impure inline {
-    (int max_score, int max_value, int min_value, int same_message) = find_max_min(storage_sl);
-    if (same_message) {
-        cell max_min_msg = replace_max_min_one(max_score, min_value, score, value, msg);
-        send_message(max_min_msg, min_value);
-    } else {
-        (cell max_msg, cell min_msg) = replace_max_min_two(max_score, min_value, score, value, msg);
-        send_message(max_msg, max_value);
-        send_message(min_msg, min_value);
-    }
-}
+;; =============== extract_and_send =============================
+;; =============== extract_and_send: find_max_min =============================
 
-(int, int, int) find_max_min(slice storage_sl) inline {
-    slice node_sl = storage_sl~load_ref().begin_parse();
-    (int max_score, int min_value, _) = node_sl~unpack();
-    int max_value = max_score;
-    int same_message = -1;  ;; true
-
-    repeat (3) {
-        repeat (4) {
-            ifnot (node_sl.slice_refs_empty?()) {
-                (max_score, max_value, min_value, same_message) =
-                        node_sl~compare_values(max_score, max_value, min_value, same_message);
-            }
-        }
-        ifnot (storage_sl.slice_refs_empty?()) {
-            node_sl = storage_sl~load_ref().begin_parse();
-        }
-    }
-
-    return (max_score, max_value, min_value, same_message);
-}
-
-(slice, int, int, int) compare_values(slice sl, int max_score, int max_value, int min_value, int same_message) inline_ref {
+(slice, int, int, int, int) compare_values(
+        slice sl, int max_score, int max_value, int min_value, int same_message) inline {
     (int score, int value, _) = sl~unpack();
     int new_same = 0;
     if (score > max_score) {
         max_score = score;
         max_value = value;
-        new_same+=1;
+        new_same += 1;
     }
     if (value < min_value) {
         min_value = value;
-        new_same+=1;
+        new_same += 1;
     }
     if (new_same == 1) {
         same_message = 0; ;; false
@@ -234,78 +191,87 @@ builder write_current_number(int current_number) inline_ref {
     return (sl, max_score, max_value, min_value, same_message);
 }
 
-(cell) replace_max_min_one(int max_score, int min_value, int score, int value, cell msg) impure inline {
-    cell max_min_msg = null();
+(int, int, int, int) find_max_min(slice storage_sl) inline {
+    slice node_sl = storage_sl~load_ref().begin_parse();
+    (int max_score, int min_value, _) = node_sl~unpack();
+    int max_value = max_score;
+    int same_message = -1;  ;; true
 
-    builder storage_bl = write_current_number(11);
-    slice storage_sl = get_data().begin_parse();
     repeat (3) {
-        if (max_min_msg == null()) {
-            cell node = storage_sl~load_ref();
-            max_min_msg = node~process_max_min_node_one(max_score, min_value, int score, int value, cell msg);
-            storage_bl.store_ref(node);
+        repeat (4) {
+            ifnot (node_sl.slice_refs_empty?()) {
+                (node_sl, max_score, max_value, min_value, same_message) =
+                        compare_values(node_sl, max_score, max_value, min_value, same_message);
+            }
         }
-        storage_bl.store_ref(node);
+        ifnot (storage_sl.slice_refs_empty?()) {
+            node_sl = storage_sl~load_ref().begin_parse();
+        }
     }
 
-    storage_bl.end_cell().set_data();
-    return (max_min_msg);
+    return (max_score, max_value, min_value, same_message);
 }
 
-(cell, cell) process_max_min_node_one(slice node_sl, int max_score, int min_value, int new_score, int new_value, cell new_msg) inline {
+;; =============== extract_and_send: replace_max_min_one =============================
+
+(cell, cell) replace_max_min_node_one(
+        cell node, int max_score, int min_value, (int, int, cell) new_tupled_msg) inline {
+    slice node_sl = node.begin_parse();
     builder node_bl = begin_cell();
     cell max_min_msg = null();
     repeat (4) {
         ifnot (node_sl.slice_refs_empty?()) {
-            (int score, int value, cell msg) = node_sl~unpack();
+            (int, int, cell) tupled_msg = node_sl~unpack();
+            (int score, int value, cell msg) = tupled_msg;
             if ((score == max_score) & (value == min_value)) {
                 max_min_msg = msg;
-                node_bl.pack(new_score, new_value, new_msg);
+                node_bl = node_bl.pack(new_tupled_msg);
             } else {
-                node_bl.pack(score, value, msg);
+                node_bl = node_bl.pack(tupled_msg);
             }
         }
     }
     return (node_bl.end_cell(), max_min_msg);
 }
 
-(cell, cell) replace_max_min_two(int max_score, int min_value, int score, int value, cell msg) impure inline {
-    ;; replace max node, drop min node
-    (cell max_msg, cell min_msg) = (null(), null());
+(cell) replace_max_min_one(int max_score, int min_value, (int, int, cell) tupled_msg) impure inline {
+    cell max_min_msg = null();
 
-    builder storage_bl = write_current_number(10);
+    builder storage_bl = write_current_number(11);
     slice storage_sl = get_data().begin_parse();
     repeat (3) {
-        if ((max_msg == null()) | (min_msg == null())) {
-            cell node = storage_sl~load_ref();
-            (max_msg, min_msg) = node~process_max_min_node_two(
-                    max_msg, min_msg, max_score, min_value,
-                    int score, int value, cell msg);
-            storage_bl.store_ref(node);
+        cell node = storage_sl~load_ref();
+        if (max_min_msg.null?()) {
+            (node, max_min_msg) = replace_max_min_node_one(node, max_score, min_value, tupled_msg);
+            storage_bl = storage_bl.store_ref(node);
         }
-        storage_bl.store_ref(node);
+        storage_bl = storage_bl.store_ref(node);
     }
 
     storage_bl.end_cell().set_data();
-    return (max_msg, min_msg);
+    return (max_min_msg);
 }
 
-(cell, cell, cell) process_max_min_node_two(
-        slice node_sl, cell max_msg, cell min_msg, int max_score, int min_value,
-        int new_score, int new_value, cell new_msg) inline {
+;; =============== extract_and_send: replace_max_min_two =============================
+
+(cell, cell, cell) replace_max_min_node_two(
+        cell node, cell max_msg, cell min_msg, int max_score, int min_value,
+        (int, int, cell) new_tupled_msg) inline {
+    slice node_sl = node.begin_parse();
     builder node_bl = begin_cell();
     repeat (4) {
         ifnot (node_sl.slice_refs_empty?()) {
-            (int score, int value, cell msg) = node_sl~unpack();
+            (int, int, cell) tupled_msg = node_sl~unpack();
+            (int score, int value, cell msg) = tupled_msg;
             if (score == max_score) {
                 max_msg = msg;
-                node_bl.pack(new_score, new_value, new_msg);
+                node_bl = node_bl.pack(new_tupled_msg);
             } else {
                 if (value == min_value) {
                     min_msg = msg;
                     ;; node_bl pack nothing
                 } else {
-                    node_bl.pack(score, value, msg);
+                    node_bl = node_bl.pack(tupled_msg);
                 }
             }
         }
@@ -313,8 +279,30 @@ builder write_current_number(int current_number) inline_ref {
     return (node_bl.end_cell(), max_msg, min_msg);
 }
 
+(cell, cell) replace_max_min_two(int max_score, int min_value, (int, int, cell) tupled_msg) impure inline {
+    ;; replace max node, drop min node
+    (cell max_msg, cell min_msg) = (null(), null());
+
+    builder storage_bl = write_current_number(10);
+    slice storage_sl = get_data().begin_parse();
+    repeat (3) {
+        cell node = storage_sl~load_ref();
+        if ((max_msg.null?()) | (min_msg.null?())) {
+            (node, max_msg, min_msg) = replace_max_min_node_two(
+                    node, max_msg, min_msg, max_score, min_value, tupled_msg);
+            storage_bl = storage_bl.store_ref(node);
+        }
+        storage_bl = storage_bl.store_ref(node);
+    }
+
+    storage_bl.end_cell().set_data();
+    return (max_msg, min_msg);
+}
+
+;; =============== extract_and_send: send_message =============================
+
 () send_message(cell msg, int value) impure inline_ref {
-    var msg_to_sent = begin_cell()
+    cell msg_to_sent = begin_cell()
             .store_uint(0x18, 6) ;; tech flags
             .store_slice(my_address())   ;; destination address
             .store_coins(value) ;; attached value
@@ -323,4 +311,41 @@ builder write_current_number(int current_number) inline_ref {
             .end_cell();
 
     send_raw_message(msg_to_sent, 0);
+}
+
+;; =============== extract_and_send: extract_and_send =============================
+
+() extract_and_send(slice storage_sl, (int, int, cell) tupled_msg) impure inline {
+    (int max_score, int max_value, int min_value, int same_message) = find_max_min(storage_sl);
+    if (same_message) {
+        cell max_min_msg = replace_max_min_one(max_score, min_value, tupled_msg);
+        send_message(max_min_msg, min_value);
+    } else {
+        (cell max_msg, cell min_msg) = replace_max_min_two(max_score, min_value, tupled_msg);
+        send_message(max_msg, max_value);
+        send_message(min_msg, min_value);
+    }
+}
+
+;; =============== recv_internal =============================
+
+;; testable
+() recv_internal (slice in_msg_body) impure {
+    (int, int, cell) tupled_msg = in_msg_body~unpack();
+    ;; load number of current messages
+    ;; if new can be added withour structure reformat - add
+    ;; else - reformat structure
+    ;; 1-4 cells - directly in storage cell
+    ;; 5-7 cells - first 4 in first parent cell; others directly in storage cell
+    ;; 8-11 cells - first 4 in first parent cell; second 4 in second parent cell; third 3 in third parent cell
+    (slice storage_sl, int current_number) = read_current_number();
+    if ((current_number == 0) | (current_number == 4) | (current_number == 7)) {
+        reformat(storage_sl, current_number, tupled_msg);
+    } else {
+        if (current_number == 11) {
+            extract_and_send(storage_sl, tupled_msg);
+        } else {
+            add_message(storage_sl, current_number, tupled_msg);
+        }
+    }
 }
