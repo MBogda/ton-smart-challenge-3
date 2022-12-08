@@ -77,6 +77,8 @@ builder write_current_number(int current_number) inline_ref {
     return builder storage_bl = begin_cell().store_uint(current_number, 4);
 }
 
+
+
 () reformat(slice storage_sl, int current_number, int score, int value, cell msg) impure inline {
     builder storage_bl = write_current_number(current_number + 1);
     if (current_number == 0) {
@@ -113,40 +115,44 @@ builder write_current_number(int current_number) inline_ref {
 }
 
 () extract_and_send(slice storage_sl, int score, int value, cell msg) impure inline {
-    (int max_score, int min_value, int same_message) = find_max_min(storage_sl);
+    (int max_score, int max_value, int min_value, int same_message) = find_max_min(storage_sl);
     if (same_message) {
         cell max_min_msg = replace_max_min_one(max_score, min_value, score, value, msg);
-        send_message(max_min_msg);
+        send_message(max_min_msg, min_value);
     } else {
         (cell max_msg, cell min_msg) = replace_max_min_two(max_score, min_value, score, value, msg);
-        send_message(max_msg);
-        send_message(min_msg);
+        send_message(max_msg, max_value);
+        send_message(min_msg, min_value);
     }
 }
 
 (int, int, int) find_max_min(slice storage_sl) inline {
-    slice first_sl = storage_sl~load_ref().begin_parse();
-    (int max_score, int min_value, _) = first_sl~unpack();
+    slice node_sl = storage_sl~load_ref().begin_parse();
+    (int max_score, int min_value, _) = node_sl~unpack();
+    int max_value = max_score;
     int same_message = -1;  ;; true
+
     repeat (3) {
-        (max_score, min_value, same_message) = first_sl~compare_values(max_score, min_value);
+        repeat (4) {
+            ifnot (node_sl.slice_refs_empty?()) {
+                (max_score, max_value, min_value, same_message) =
+                        node_sl~compare_values(max_score, max_value, min_value, same_message);
+            }
+        }
+        ifnot (storage_sl.slice_refs_empty?()) {
+            node_sl = storage_sl~load_ref().begin_parse();
+        }
     }
-    slice second_sl = storage_sl~load_ref().begin_parse();
-    repeat (4) {
-        (max_score, min_value, same_message) = second_sl~compare_values(max_score, min_value);
-    }
-    slice third_sl = storage_sl~load_ref().begin_parse();
-    repeat (3) {
-        (max_score, min_value, same_message) = third_sl~compare_values(max_score, min_value);
-    }
-    return (max_score, min_value, same_message);
+
+    return (max_score, max_value, min_value, same_message);
 }
 
-(slice, int, int, int) compare_values(slice sl, int max_score, int min_value, int same_message) inline_ref {
+(slice, int, int, int) compare_values(slice sl, int max_score, int max_value, int min_value, int same_message) inline_ref {
     (int score, int value, _) = sl~unpack();
     int new_same = 0;
     if (score > max_score) {
         max_score = score;
+        max_value = value;
         new_same+=1;
     }
     if (value < min_value) {
@@ -160,7 +166,7 @@ builder write_current_number(int current_number) inline_ref {
             same_message = -1; ;; true
         }
     }
-    return (sl, max_score, min_value, same_message);
+    return (sl, max_score, max_value, min_value, same_message);
 }
 
 (cell) replace_max_min_one(int max_score, int min_value, int score, int value, cell msg) impure inline {
@@ -185,12 +191,14 @@ builder write_current_number(int current_number) inline_ref {
     builder node_bl = begin_cell();
     cell max_min_msg = null();
     repeat (4) {
-        (int score, int value, cell msg) = node_sl~unpack();
-        if ((score == max_score) & (value == min_value)) {
-            max_min_msg = msg;
-            node_bl.pack(new_score, new_value, new_msg);
-        } else {
-            node_bl.pack(score, value, msg);
+        ifnot (node_sl.slice_refs_empty?()) {
+            (int score, int value, cell msg) = node_sl~unpack();
+            if ((score == max_score) & (value == min_value)) {
+                max_min_msg = msg;
+                node_bl.pack(new_score, new_value, new_msg);
+            } else {
+                node_bl.pack(score, value, msg);
+            }
         }
     }
     return (node_bl.end_cell(), max_min_msg);
@@ -222,18 +230,32 @@ builder write_current_number(int current_number) inline_ref {
         int new_score, int new_value, cell new_msg) inline {
     builder node_bl = begin_cell();
     repeat (4) {
-        (int score, int value, cell msg) = node_sl~unpack();
-        if (score == max_score) {
-            max_msg = msg;
-            node_bl.pack(new_score, new_value, new_msg);
-        } else {
-            if (value == min_value) {
-                min_msg = msg;
-                ;; node_bl pack nothing
+        ifnot (node_sl.slice_refs_empty?()) {
+            (int score, int value, cell msg) = node_sl~unpack();
+            if (score == max_score) {
+                max_msg = msg;
+                node_bl.pack(new_score, new_value, new_msg);
             } else {
-                node_bl.pack(score, value, msg);
+                if (value == min_value) {
+                    min_msg = msg;
+                    ;; node_bl pack nothing
+                } else {
+                    node_bl.pack(score, value, msg);
+                }
             }
         }
     }
     return (node_bl.end_cell(), max_msg, min_msg);
+}
+
+() send_message(cell msg, int value) impure inline_ref {
+    var msg_to_sent = begin_cell()
+            .store_uint(0x18, 6) ;; tech flags
+            .store_slice(my_address())   ;; destination address
+            .store_coins(value) ;; attached value
+            .store_uint(0, 107) ;; more tech flags :)
+            .store_slice(msg.begin_parse())
+            .end_cell();
+
+    send_raw_message(msg_to_sent, 0);
 }
