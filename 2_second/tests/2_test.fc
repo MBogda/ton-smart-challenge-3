@@ -1,8 +1,16 @@
+(cell) create_input_message(int score, int value, int internal_value) impure {
+    return begin_cell()
+            .store_uint(score, 32)
+            .store_coins(value)
+            .store_ref(begin_cell().store_int(internal_value, 17).end_cell())
+            .end_cell();
+}
+
 _ __test_one_message() {
     ;; Given: empty state
     set_data(begin_cell().end_cell());
     ;; some message
-    cell message = begin_cell().store_uint(5, 32).store_coins(10).store_ref(begin_cell().store_int(-1, 17).end_cell()).end_cell();
+    cell message = create_input_message(5, 10, -1);
 
     ;; When: recv_internal
     var (int gas_used, _) = invoke_method(recv_internal, [message.begin_parse()]);
@@ -25,4 +33,41 @@ _ __test_one_message() {
     throw_if(105, msg.slice_empty?());
 
     return [gas_used, msg];
+}
+
+_ __test_two_messages() {
+    ;; Given: empty state
+    set_data(begin_cell().end_cell());
+    ;; two messages
+    cell message1 = create_input_message(1, 12, -1);
+    cell message2 = create_input_message(2, 11, -2);
+
+    ;; When: recv_internal two times
+    var (int gas_used, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    var (int gas_used, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+
+    ;; Then: expected state
+    slice sl = get_data().begin_parse();
+    int number = sl~load_uint(4);
+    throw_if(110, number != 2);
+
+    int score = sl~load_uint(32);
+    throw_if(111, score != 1);
+    int value = sl~load_coins();
+    throw_if(112, value != 12);
+
+    int score = sl~load_uint(32);
+    throw_if(121, score != 2);
+    int value = sl~load_coins();
+    throw_if(122, value != 11);
+
+    int refs = sl.slice_refs();
+    throw_if(130, refs != 2);
+
+    slice msg1 = sl~load_ref().begin_parse();
+    throw_if(141, msg1.slice_empty?());
+    slice msg2 = sl~load_ref().begin_parse();
+    throw_if(142, msg2.slice_empty?());
+
+    return [gas_used, msg1, msg2];
 }
