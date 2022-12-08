@@ -109,8 +109,7 @@ builder pack(builder bl, int score, int value, cell msg) inline_ref {
 }
 
 () extract_and_send(slice storage_sl, int score, int value, cell msg) impure inline {
-    ;; todo: extract neigbours flag
-    (int max_score, int min_value) = find_max_min(storage_sl);
+    (int max_score, int min_value, int same_message) = find_max_min(storage_sl);
     (cell max_msg, cell min_msg) = replace_max_min(max_score, min_value, score, value, msg);
     ;; todo
     send_message(max_msg);
@@ -119,32 +118,43 @@ builder pack(builder bl, int score, int value, cell msg) inline_ref {
     }
 }
 
-(int, int) find_max_min(slice storage_sl) inline {
+(int, int, int) find_max_min(slice storage_sl) inline {
     slice first_sl = storage_sl~load_ref().begin_parse();
     (int max_score, int min_value, _) = first_sl~unpack();
+    int same_message = -1;  ;; true
     repeat (3) {
-        (first_sl, max_score, min_value) = compare_values(first_sl, max_score, min_value);
+        (max_score, min_value, same_message) = first_sl~compare_values(max_score, min_value);
     }
     slice second_sl = storage_sl~load_ref().begin_parse();
     repeat (4) {
-        (second_sl, max_score, min_value) = compare_values(second_sl, max_score, min_value);
+        (max_score, min_value, same_message) = second_sl~compare_values(max_score, min_value);
     }
     slice third_sl = storage_sl~load_ref().begin_parse();
     repeat (3) {
-        (third_sl, max_score, min_value) = compare_values(third_sl, max_score, min_value);
+        (max_score, min_value, same_message) = third_sl~compare_values(max_score, min_value);
     }
-    return (max_score, min_value);
+    return (max_score, min_value, same_message);
 }
 
-(slice, int, int) compare_values(slice sl, int max_score, int min_value) inline_ref {
+(slice, int, int, int) compare_values(slice sl, int max_score, int min_value, int same_message) inline_ref {
     (int score, int value, _) = sl~unpack();
+    int new_same = 0;
     if (score > max_score) {
         max_score = score;
+        new_same+=1;
     }
     if (value < min_value) {
         min_value = value;
+        new_same+=1;
     }
-    return (sl, max_score, min_value);
+    if (new_same == 1) {
+        same_message = 0; ;; false
+    } else {
+        if (new_same == 2) {
+            same_message = -1; ;; true
+        }
+    }
+    return (sl, max_score, min_value, same_message);
 }
 
 (cell, cell) replace_max_min(int max_score, int min_value, int score, int value, cell msg) inline {
