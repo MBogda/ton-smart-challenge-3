@@ -73,8 +73,12 @@ builder pack(builder bl, int score, int value, cell msg) inline_ref {
     return storage_sl~load_uint(4);
 }
 
+builder write_current_number(int current_number) inline_ref {
+    return builder storage_bl = begin_cell().store_uint(current_number, 4);
+}
+
 () reformat(slice storage_sl, int current_number, int score, int value, cell msg) impure inline {
-    builder storage_bl = begin_cell().store_uint(current_number + 1, 4);
+    builder storage_bl = write_current_number(current_number + 1);
     if (current_number == 0) {
         storage_bl.pack(score, value, msg).end_cell().set_data();
     } else {
@@ -110,11 +114,11 @@ builder pack(builder bl, int score, int value, cell msg) inline_ref {
 
 () extract_and_send(slice storage_sl, int score, int value, cell msg) impure inline {
     (int max_score, int min_value, int same_message) = find_max_min(storage_sl);
-    (cell max_msg, cell min_msg) = replace_max_min(max_score, min_value, score, value, msg);
-    ;; todo
-    send_message(max_msg);
-    if (min_msg != null()) {
-        send_message(min_msg);
+    if (same_message) {
+        cell max_min_msg = replace_max_min_one(max_score, min_value, score, value, msg);
+        send_message(max_min_msg);
+    } else {
+        ;; todo
     }
 }
 
@@ -157,27 +161,37 @@ builder pack(builder bl, int score, int value, cell msg) inline_ref {
     return (sl, max_score, min_value, same_message);
 }
 
-(cell, cell) replace_max_min(int max_score, int min_value, int score, int value, cell msg) inline {
-    (cell max_msg, cell min_msg) = (null(), null());
+(cell) replace_max_min_one(int max_score, int min_value, int score, int value, cell msg) impure inline {
+    cell max_min_msg = null();
 
+    builder storage_bl = write_current_number(10);
     slice storage_sl = get_data().begin_parse();
-    slice first_sl = storage_sl~load_ref().begin_parse();
+    repeat (3) {
+        if (max_min_msg == null()) {
+            cell node = storage_sl~load_ref();
+            max_min_msg = node~process_max_min_node_one(max_score, min_value, int score, int value, cell msg);
+            storage_bl.store_ref(node);
+        }
+        storage_bl.store_ref(node);
+    }
+
+    storage_bl.end_cell().set_data();
+    return (max_min_msg);
+}
+
+(cell, cell) process_max_min_node_one(slice node_sl, int max_score, int min_value, int new_score, int new_value, cell new_msg) inline {
+    builder node_bl = begin_cell();
+    cell max_min_msg = null();
     repeat (4) {
-        (int score, int value, cell msg) = first_sl~unpack();
-        if ((score == max_score) & (value != min_value)) {
-            max_msg = msg;
-        } else {
-            if ((score != max_score) & (value == min_value)) {
-                min_msg = msg;
+        ifnot (node_sl.slice_refs_empty?()) {
+            (int score, int value, cell msg) = node_sl~unpack();
+            if ((score == max_score) & (value == min_value)) {
+                max_min_msg = msg;
+                node_bl.pack(new_score, new_value, new_msg);
             } else {
-                if ((score == max_score) & (value == min_value)) {
-                    max_msg = msg;
-                } else {
-                    ;; todo: pack values back + process second and third node
-                }
+                node_bl.pack(score, value, msg);
             }
         }
     }
-
-    return (max_msg, min_msg);
+    return (node_bl.end_cell(), max_min_msg);
 }
