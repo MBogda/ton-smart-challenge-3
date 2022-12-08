@@ -1,0 +1,173 @@
+{-
+  Contract handles internal messages with queries with the following scheme
+  `_# score:uint32 value:(VarUInteger 16) msg:^Cell = MsgInternalBody`, where msg contains message body
+  which shoud be sent later and store it to contract.
+  Once the number of stored queries reaches 12, contract should send and delete from storage message with
+  the highest score and message with the lowest value (if it is the same message, it should be sent once).
+  Messages should be sent to any address with mode 0, coin amount should be equal to value and it should contain
+  corresponding message body. All scores and values are guaranteed to be different
+  Note, that in addition to gas-fees, storage fees will be used to determine final score. In particular,
+  storage fee will be calculated like between each message passes 3 days (259200 seconds).
+  Gas-units price and storage fee params will correspond to current configs of masterchain:
+  1000 nanoTON per 65536 bits per second + 500000 nanoTON per 65536 cells per second; gas is 10000 nanoTON per unit.
+
+
+  Example:
+  (message with score x and value y are represented as `(x,y)` )
+
+  incoming message   outcoming messages     
+  (1, 5)           | -
+  (2, 6)           | -
+  (3, 100)         | -
+  (4, 2)           | -
+  (5, 3)           | -
+  (6, 4)           | -
+  (7, 7)           | -
+  (8, 8)           | -
+  (9, 9)           | -
+  (10, 10)         | -
+  (11, 11)         | -
+  (12, 20)         | (12,20); (4,2)
+  (15, 1)          | -
+  (13, 13)         | (15, 1)
+  (14, 14)         | (14,14); (5,3)
+-}
+
+;; testable
+() recv_internal (slice in_msg_body) impure {
+    (int score, int value, cell msg) = in_msg_body~unpack();
+    ;; load number of current messages
+    ;; if new can be added withour structure reformat - add
+    ;; else - reformat structure
+    ;; 1-4 cells - directly in storage cell
+    ;; 5-7 cells - first 4 in first parent cell; others directly in storage cell
+    ;; 8-11 cells - first 4 in first parent cell; second 4 in second parent cell; third 3 in third parent cell
+    (slice storage_sl, int current_number) = read_current_number();
+    if ((current_number == 0) | (current_number == 4) | (current_number == 7)) {
+        reformat(sl, current_number, score, value, msg);
+    } else {
+        if (current_number == 11) {
+            extract_and_send(sl, score, value, msg);
+        } else {
+            add_message(sl, current_number, score, value, msg);
+        }
+    }
+}
+
+(slice, int, int, cell) unpack(slice sl) inline_ref {
+    int score = sl~load_uint(32);
+    int value = sl~load_coins();
+    cell msg = sl~load_ref();
+    return (sl, score, value, msg);
+}
+
+builder pack(builder bl, int score, int value, cell msg) inline_ref {
+    return bl.store_uint(score, 32).store_coins(value).store_ref(msg);
+}
+
+(slice, int) read_current_number() inline {
+    slice storage_sl = get_data().begin_parse();
+    if (storage_sl.slice_empty?()) {
+        return (storage_sl, 0);
+    }
+    return storage_sl~load_uint(4);
+}
+
+() reformat(slice storage_sl, int current_number, int score, int value, cell msg) impure inline {
+    builder storage_bl = begin_cell().store_uint(current_number + 1, 4);
+    if (current_number == 0) {
+        storage_bl.pack(score, value, msg).end_cell().set_data();
+    } else {
+        if (current_number == 4) {
+            ;; cell first = begin_cell().store_slice(storage_sl).end_cell();
+            builder first_bl = begin_cell();
+            repeat (4) {
+                (int score, int value, cell msg) = storage_sl~unpack();
+                first_bl.pack(score, value, msg);
+            }
+            cell first = first_bl.end_cell();
+            storage_bl.store_ref(first)
+                    .pack(score, value, msg)
+                    .end_cell().set_data();
+        } else {
+            if (current_number == 7) {
+                cell first = storage_bl~load_ref();
+                builder second_bl = begin_cell();
+                repeat (3) {
+                    (int score, int value, cell msg) = storage_sl~unpack();
+                    second_bl.pack(score, value, msg);
+                }
+                cell second = second_bl
+                        .pack(score, value, msg)
+                        .end_cell();
+                cell third = begin_cell().end_cell();
+                storage_bl.store_ref(first).store_ref(second).store_ref(third)
+                        .end_cell().set_data();
+            }
+        }
+    }
+}
+
+() extract_and_send(slice storage_sl, int score, int value, cell msg) impure inline {
+    ;; todo: extract neigbours flag
+    (int max_score, int min_value) = find_max_min(storage_sl);
+    (cell max_msg, cell min_msg) = replace_max_min(max_score, min_value, score, value, msg);
+    ;; todo
+    send_message(max_msg);
+    if (min_msg != null()) {
+        send_message(min_msg);
+    }
+}
+
+(int, int) find_max_min(slice storage_sl) inline {
+    slice first_sl = storage_sl~load_ref().begin_parse();
+    (int max_score, int min_value, _) = first_sl~unpack();
+    repeat (3) {
+        (first_sl, max_score, min_value) = compare_values(first_sl, max_score, min_value);
+    }
+    slice second_sl = storage_sl~load_ref().begin_parse();
+    repeat (4) {
+        (second_sl, max_score, min_value) = compare_values(second_sl, max_score, min_value);
+    }
+    slice third_sl = storage_sl~load_ref().begin_parse();
+    repeat (3) {
+        (third_sl, max_score, min_value) = compare_values(third_sl, max_score, min_value);
+    }
+    return (max_score, min_value);
+}
+
+(slice, int, int) compare_values(slice sl, int max_score, int min_value) inline_ref {
+    (int score, int value, _) = sl~unpack();
+    if (score > max_score) {
+        max_score = score;
+    }
+    if (value < min_value) {
+        min_value = value;
+    }
+    return (sl, max_score, min_value);
+}
+
+(cell, cell) replace_max_min(int max_score, int min_value, int score, int value, cell msg) inline {
+    (cell max_msg, cell min_msg) = (null(), null());
+
+    slice storage_sl = get_data().begin_parse();
+    slice first_sl = storage_sl~load_ref().begin_parse();
+    repeat (4) {
+        (int score, int value, cell msg) = first_sl~unpack();
+        if ((score == max_score) & (value != min_value)) {
+            max_msg = msg;
+        } else {
+            if ((score != max_score) & (value == min_value)) {
+                min_msg = msg;
+            } else {
+                if ((score == max_score) & (value == min_value)) {
+                    max_msg = msg;
+                } else {
+                    ;; todo: pack values back + process second and third node
+                }
+            }
+        }
+    }
+
+    return (max_msg, min_msg);
+}
