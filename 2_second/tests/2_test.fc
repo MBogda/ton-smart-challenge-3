@@ -1,8 +1,31 @@
-int __test_one_message() {
+_ __test_one_message() {
+    ;; Given: empty state
     set_data(begin_cell().end_cell());
+    ;; some message
     cell message = begin_cell().store_uint(5, 32).store_coins(10).store_ref(begin_cell().end_cell()).end_cell();
+
+    ;; When: recv_internal
     var (int gas_used, _) = invoke_method(recv_internal, [message.begin_parse()]);
-    (_, int number) = get_data().begin_parse().load_uint(4);
+
+    ;; Then: expected state
+    slice sl = get_data().begin_parse();
+    int number = sl~load_uint(4);
     throw_if(101, number != 1);
-    return gas_used;
+
+    slice n1 = sl~load_ref().begin_parse();
+    int score = sl~load_uint(32);
+    throw_if(102, score != 5);
+
+    int value = sl~load_coins();
+    throw_if(103, value != 10);
+
+    int refs = sl.slice_refs();
+    throw_if(104, refs != 1);
+
+;;     slice msg = sl~load_ref().begin_parse();
+;;     int x = msg.slice_empty?();
+;;     dump(x);
+;;     throw_unless(104, x == -1);
+
+    return [gas_used, refs];
 }
