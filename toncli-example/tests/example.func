@@ -1,0 +1,13 @@
+() set_default_initial_data() impure {
+    set_data(begin_cell().store_uint(0, 64).end_cell());
+}
+
+int __test_example() {
+    set_data(begin_cell().store_uint(0, 64).end_cell());
+    cell message = begin_cell().store_uint(10, 32).end_cell();
+    var (int gas_used1, _) = invoke_method(recv_internal, [message.begin_parse()]);
+    var (int gas_used2, stack) = invoke_method(get_total, []);
+    [int total] = stack;
+    throw_if(101, total != 10);
+    return gas_used1 + gas_used2;
+}
