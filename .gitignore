@@ -1,7 +1,3 @@
 .idea
-# FunC common files:
-fiftlib
-fift.exe
-func.exe
-lite-client.exe
-stdlib.fc
+# toncli common files:
+ton-win64-binaries
