@@ -1,0 +1,8 @@
+int __test_one_message() {
+    set_data(begin_cell().end_cell());
+    cell message = begin_cell().store_uint(5, 32).store_coins(10).store_ref(begin_cell().end_cell()).end_cell();
+    var (int gas_used, _) = invoke_method(recv_internal, [message.begin_parse()]);
+    (_, int number) = get_data().begin_parse().load_uint(4);
+    throw_if(101, number != 1);
+    return gas_used;
+}
