@@ -44,12 +44,12 @@
     ;; 8-11 cells - first 4 in first parent cell; second 4 in second parent cell; third 3 in third parent cell
     (slice storage_sl, int current_number) = read_current_number();
     if ((current_number == 0) | (current_number == 4) | (current_number == 7)) {
-        reformat(sl, current_number, score, value, msg);
+        reformat(storage_sl, current_number, score, value, msg);
     } else {
         if (current_number == 11) {
-            extract_and_send(sl, score, value, msg);
+            extract_and_send(storage_sl, score, value, msg);
         } else {
-            add_message(sl, current_number, score, value, msg);
+            add_message(storage_sl, current_number, score, value, msg);
         }
     }
 }
@@ -77,7 +77,72 @@ builder write_current_number(int current_number) inline_ref {
     return builder storage_bl = begin_cell().store_uint(current_number, 4);
 }
 
+() add_message(slice storage_sl, int current_number, int score, int value, cell msg) impure inline {
+    builder storage_bl = write_current_number(current_number + 1);
+    if (current_number < 4) {
+        ;; 1, 2 or 3
+        repeat (3) {
+            ifnot (storage_sl.slice_refs_empty?()) {
+                storage_bl.pack(storage_sl~unpack());
+            }
+        }
+        storage_bl.pack(score, value, msg).end_cell().set_data();
+    } else {
+        if (current_number < 7) {
+            ;; 5, 6
+            storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
+            repeat (2) {
+                ifnot (storage_sl.slice_refs_empty?()) {
+                    storage_bl.pack(storage_sl~unpack());
+                }
+            }
+            storage_bl.pack(score, value, msg).end_cell().set_data();
+        } else {
+            if (current_number < 10) {
+                ;; 8, 9
+                storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
+                storage_bl.store_ref(storage_sl~load_ref());    ;; second node as is
 
+                slice third_sl = storage_sl~load_ref();
+                builder third_bl = begin_cell();
+                ;; possible 9th message
+                ifnot (third_sl.slice_refs_empty?()) {
+                    third_bl.pack(third_sl~unpack());
+                }
+                ;; new message (9th or 10th)
+                third_bl.pack(score, value, msg);
+
+                storage_bl.store_ref(third_bl.end_cell());
+                storage_bl.end_cell().set_data();
+            } else {
+                if (current_number == 10) {
+                    ;; 10 - check unfilled nodes
+                    int packed = 0; ;; false
+
+                    repeat (3) {
+                        ifnot (packed) {
+                            slice node_sl = storage_sl~load_ref().begin_parse();
+                            builder node_bl = begin_cell();
+                            repeat (4) {
+                                ifnot (node_sl.slice_refs_empty?()) {
+                                    node_bl.pack(node_sl~unpack());
+                                } else {
+                                    ifnot (packed) {
+                                        node_bl.pack(score, value, msg);
+                                        packed = -1;
+                                    }
+                                }
+                            }
+                            storage_bl.store_ref(node_bl.end_cell());
+                        } else {
+                            storage_bl.store_ref(storage_sl~load_ref());
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 () reformat(slice storage_sl, int current_number, int score, int value, cell msg) impure inline {
     builder storage_bl = write_current_number(current_number + 1);
