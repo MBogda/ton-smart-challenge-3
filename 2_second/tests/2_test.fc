@@ -43,8 +43,8 @@ _ __test_two_messages() {
     cell message2 = create_input_message(2, 11, -2);
 
     ;; When: recv_internal two times
-    var (int gas_used, _) = invoke_method(recv_internal, [message1.begin_parse()]);
-    var (int gas_used, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
 
     ;; Then: expected state
     slice sl = get_data().begin_parse();
@@ -61,6 +61,8 @@ _ __test_two_messages() {
     int value = sl~load_coins();
     throw_if(122, value != 11);
 
+    throw_unless(150, sl.slice_data_empty?());
+
     int refs = sl.slice_refs();
     throw_if(130, refs != 2);
 
@@ -69,5 +71,70 @@ _ __test_two_messages() {
     slice msg2 = sl~load_ref().begin_parse();
     throw_if(142, msg2.slice_empty?());
 
-    return [gas_used, msg1, msg2];
+    return [msg1, msg2];
+}
+
+_ __test_five_messages() {
+    ;; Given: empty state
+    set_data(begin_cell().end_cell());
+    ;; four messages
+    cell message1 = create_input_message(1, 12, -1);
+    cell message2 = create_input_message(2, 11, -2);
+    cell message3 = create_input_message(3, 10, -3);
+    cell message4 = create_input_message(4, 9, -4);
+    cell message5 = create_input_message(5, 8, -5);
+
+    ;; When: recv_internal two times
+    var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message3.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message4.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message5.begin_parse()]);
+
+    ;; Then: expected state
+    slice sl = get_data().begin_parse();
+    int number = sl~load_uint(4);
+    throw_if(110, number != 5);
+
+    int score = sl~load_uint(32);
+    throw_if(111, score != 5);
+    int value = sl~load_coins();
+    throw_if(112, value != 8);
+
+    slice n1 = sl~load_ref().begin_parse();
+    slice msg5 = sl~load_ref().begin_parse();
+    throw_unless(113, sl.slice_empty?());
+    throw_if(114, msg5.slice_empty?());
+
+    int score = n1~load_uint(32);
+    throw_if(121, score != 1);
+    int value = n1~load_coins();
+    throw_if(122, value != 12);
+    slice msg1 = n1~load_ref().begin_parse();
+    throw_if(123, msg1.slice_empty?());
+
+    int score = n1~load_uint(32);
+    throw_if(131, score != 2);
+    int value = n1~load_coins();
+    throw_if(132, value != 11);
+    slice msg2 = n1~load_ref().begin_parse();
+    throw_if(133, msg2.slice_empty?());
+
+    int score = n1~load_uint(32);
+    throw_if(141, score != 3);
+    int value = n1~load_coins();
+    throw_if(142, value != 10);
+    slice msg3 = n1~load_ref().begin_parse();
+    throw_if(143, msg3.slice_empty?());
+
+    int score = n1~load_uint(32);
+    throw_if(151, score != 4);
+    int value = n1~load_coins();
+    throw_if(152, value != 9);
+    slice msg4 = n1~load_ref().begin_parse();
+    throw_if(153, msg4.slice_empty?());
+
+    throw_unless(200, n1.slice_data_empty?());
+
+    return [msg1, msg2, msg3, msg4, msg5];
 }
