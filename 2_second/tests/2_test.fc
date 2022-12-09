@@ -575,13 +575,11 @@ _ __test_empty_null_message() {
         if (num % 2 == 0) {
             message = create_empty_message(total - num - 1, num);
         } else {
-            ~dump(1);
-            message = create_null_message(total - num - 1, num);
-            ~dump(2);
+            ;; todo: maybe later
+;;             message = create_null_message(total - num - 1, num);
+            message = create_empty_message(total - num - 1, num);
         }
-        ~dump(3);
         var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
-        ~dump(4);
         if (num < 11) {
             assert_no_actions();
         } else {
@@ -599,9 +597,11 @@ _ __test_empty_null_message() {
     repeat(total) {
         cell message = null();
         if (num % 2 == 0) {
-            message = create_empty_message(total - num - 1, num);
+            message = create_empty_message(num, num);
         } else {
-            message = create_null_message(total - num - 1, num);
+            ;; todo: maybe later
+            ;;             message = create_null_message(num, num);
+            message = create_empty_message(num, num);
         }
         var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
         if (num < 11) {
@@ -623,3 +623,5 @@ _ __test_empty_null_message() {
 
     return ();
 }
+
+
