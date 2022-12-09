@@ -303,6 +303,10 @@ builder write_current_number(int current_number) inline_ref {
 ;; =============== extract_and_send: send_message =============================
 
 () send_message(cell msg, int value) impure inline_ref {
+    ~dump(value);
+    slice tmp = msg.begin_parse();
+    ~dump(tmp~load_int(17));
+
     cell msg_to_sent = begin_cell()
             .store_uint(0x18, 6) ;; tech flags
             .store_slice(my_address())   ;; destination address
