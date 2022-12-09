@@ -22,6 +22,16 @@
             .end_cell();
 }
 
+(cell) create_big_message(int score, int value, int internal_value) {
+    return begin_cell()
+            .store_uint(score, 32)
+            .store_coins(value)
+            .store_ref(begin_cell()
+                    .store_uint(internal_value, 256).store_uint(0, 256).store_uint(0, 256).store_uint(0, 255)
+                    .end_cell())
+            .end_cell();
+}
+
 (int, int) parse_one_output_message(slice messages, int value, int internal_value) impure {
     ;; todo: understand, how is it stored.
     messages~load_ref();
@@ -623,5 +633,3 @@ _ __test_empty_null_message() {
 
     return ();
 }
-
-

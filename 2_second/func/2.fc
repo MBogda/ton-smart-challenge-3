@@ -312,8 +312,11 @@ builder write_current_number(int current_number) inline_ref {
             .store_uint(0x18, 6) ;; tech flags
             .store_slice(my_address())   ;; destination address
             .store_coins(value) ;; attached value
-            .store_uint(0, 107) ;; more tech flags :)
-            .store_slice(msg.begin_parse())
+;;             .store_uint(0, 107) ;; more tech flags :)
+;;             .store_slice(msg.begin_parse())
+            ;; strore in ref working, but fails on the same test
+            .store_uint(1, 107) ;; more tech flags :)
+            .store_ref(msg)
             .end_cell();
 
     send_raw_message(msg_to_sent, 0);
