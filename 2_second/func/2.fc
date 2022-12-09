@@ -70,7 +70,7 @@ builder write_current_number(int current_number) inline_ref {
 
 ;; =============== add_message =============================
 
-() add_message(slice storage_sl, int current_number, (int, int, cell) tupled_msg) impure inline {
+(cell) add_message(slice storage_sl, int current_number, (int, int, cell) tupled_msg) impure inline {
     builder storage_bl = write_current_number(current_number + 1);
     if (current_number < 4) {
         ;; 1, 2 or 3
@@ -133,13 +133,18 @@ builder write_current_number(int current_number) inline_ref {
                         }
                     }
 
-                    storage_bl.end_cell().set_data();
+                    if (current_number == 10) {
+                        storage_bl.end_cell().set_data();
+                    } else {
+                        return storage_bl.end_cell();
+                    }
                 } else {
                     throw(666);
                 }
             }
         }
     }
+    return null();
 }
 
 ;; =============== reformat =============================
@@ -201,8 +206,8 @@ builder write_current_number(int current_number) inline_ref {
     return (sl, max_score, max_value, min_value, same_message);
 }
 
-(int, int, int, int) find_max_min() inline {
-    slice storage_sl = get_data().begin_parse();
+(int, int, int, int) find_max_min(cell storage) inline {
+    slice storage_sl = storage.begin_parse();
     slice node_sl = storage_sl~load_ref().begin_parse();
     (int max_score, int min_value, _) = node_sl~unpack();
     int max_value = min_value;
@@ -243,11 +248,12 @@ builder write_current_number(int current_number) inline_ref {
     return (node_bl.end_cell(), node_num, max_min_msg);
 }
 
-(cell) remove_max_min_one(int max_score, int min_value) impure inline {
+(cell) remove_max_min_one(cell storage, int max_score, int min_value) impure inline {
     cell max_min_msg = null();
 
     builder storage_bl = write_current_number(11);
-    (slice storage_sl, _) = read_current_number();
+    slice storage_sl = storage.begin_parse();
+    storage_sl~load_uint(4);
     repeat (3) {
         int node_num = storage_sl~read_node_num();
         cell node = storage_sl~load_ref();
@@ -289,12 +295,13 @@ builder write_current_number(int current_number) inline_ref {
     return (node_bl.end_cell(), node_num, max_msg, min_msg);
 }
 
-(cell, cell) remove_max_min_two(int max_score, int min_value) impure inline {
+(cell, cell) remove_max_min_two(cell storage, int max_score, int min_value) impure inline {
     ;; remove max node, drop min node
     (cell max_msg, cell min_msg) = (null(), null());
 
     builder storage_bl = write_current_number(10);
-    (slice storage_sl, _) = read_current_number();
+    slice storage_sl = storage.begin_parse();
+    storage_sl~load_uint(4);
     repeat (3) {
         int node_num = storage_sl~read_node_num();
         cell node = storage_sl~load_ref();
@@ -335,13 +342,13 @@ builder write_current_number(int current_number) inline_ref {
 
 ;; =============== extract_and_send: extract_and_send =============================
 
-() extract_and_send() impure inline {
-    (int max_score, int max_value, int min_value, int same_message) = find_max_min();
+() extract_and_send(cell storage) impure inline {
+    (int max_score, int max_value, int min_value, int same_message) = find_max_min(storage);
     if (same_message) {
-        cell max_min_msg = remove_max_min_one(max_score, min_value);
+        cell max_min_msg = remove_max_min_one(storage, max_score, min_value);
         send_message(max_min_msg, min_value);
     } else {
-        (cell max_msg, cell min_msg) = remove_max_min_two(max_score, min_value);
+        (cell max_msg, cell min_msg) = remove_max_min_two(storage, max_score, min_value);
         send_message(max_msg, max_value);
         send_message(min_msg, min_value);
     }
@@ -362,9 +369,9 @@ builder write_current_number(int current_number) inline_ref {
     if ((current_number == 0) | (current_number == 4) | (current_number == 7)) {
         reformat(storage_sl, current_number, tupled_msg);
     } else {
-        add_message(storage_sl, current_number, tupled_msg);
+        cell storage = add_message(storage_sl, current_number, tupled_msg);
         if (current_number == 11) {
-            extract_and_send();
+            extract_and_send(storage);
         }
     }
 }
