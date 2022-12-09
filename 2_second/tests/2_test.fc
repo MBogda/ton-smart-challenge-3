@@ -347,3 +347,145 @@ _ __test_from_task_description() {
 
     return [actual12, actual14, actual15];
 }
+
+_ __test_36_messages() {
+    ;; Given: empty state
+    set_data(begin_cell().end_cell());
+    ;; messages
+    ;;                                    max  min
+    cell message1  = create_input_message(101, 101,  -1);   ;; #11
+    cell message2  = create_input_message(102, 102,  -2);   ;; #12
+    cell message3  = create_input_message(103, 103,  -3);   ;; #13
+    cell message4  = create_input_message(104, 104,  -4);   ;; #14
+    cell message5  = create_input_message(105, 105,  -5);   ;; #21
+    cell message6  = create_input_message(106, 106,  -6);   ;; #22
+    cell message7  = create_input_message(107, 107,  -7);   ;; #23
+    cell message8  = create_input_message(108, 108,  -8);   ;; #24
+    cell message9  = create_input_message(109, 109,  -9);   ;; #31
+    cell message10 = create_input_message(110, 110, -10);   ;; #32
+    cell message11 = create_input_message(111, 111, -11);   ;; #33
+    cell message12 = create_input_message(112, 112, -12);   ;; #34 -> out #34 (112, -12); #11 (101,  -1)
+    ;; dozen 1
+    cell message13 = create_input_message( 99, 113, -13);   ;; #11
+    cell message14 = create_input_message( 98, 114, -14);   ;; #34 -> out #33 (111, -11); #12 (102,  -2)
+    cell message15 = create_input_message( 97, 115, -15);   ;; #12
+    cell message16 = create_input_message( 96, 116, -16);   ;; #33 -> out #32 (110, -10); #13 (103,  -3)
+    cell message17 = create_input_message( 95, 117, -17);   ;; #13
+    cell message18 = create_input_message( 94, 118, -18);   ;; #32 -> out #31 (109, -9); #14 (104,  -4)
+    cell message19 = create_input_message( 93, 119, -19);   ;; #14
+    cell message20 = create_input_message( 92, 120, -20);   ;; #31 -> out #24 (108, -8); #21 (105,  -5)
+    cell message21 = create_input_message( 91, 121, -21);   ;; #21
+    cell message22 = create_input_message( 90, 122, -22);   ;; #24 -> out #23 (107, -7); #22 (106,  -6)
+    cell message23 = create_input_message( 89, 123, -23);   ;; #22
+    cell message24 = create_input_message( 88, 124, -24);   ;; #23 -> out #11 (113, -13)
+    ;; dozen 2
+    cell message25 = create_input_message( 87, 125, -25);   ;; #11 -> out #34 (114, -14)
+    cell message26 = create_input_message( 86, 126, -26);   ;; #34 -> out #12 (115, -15)
+    cell message27 = create_input_message( 85, 127, -27);   ;; #12 -> out #33 (116, -16)
+    cell message28 = create_input_message( 84, 128, -28);   ;; #33 -> out #13 (117, -17)
+    cell message29 = create_input_message( 83, 129, -29);   ;; #13 -> out #32 (118, -18)
+    cell message30 = create_input_message( 82, 130, -30);   ;; #32 -> out #14 (119, -19)
+    cell message31 = create_input_message( 81, 131, -31);   ;; #14 -> out #31 (120, -20)
+    cell message32 = create_input_message( 80, 132, -32);   ;; #31 -> out #21 (121, -21)
+    cell message33 = create_input_message( 79, 133, -33);   ;; #21 -> out #24 (122, -22)
+    cell message34 = create_input_message( 78, 134, -34);   ;; #24 -> out #22 (123, -23)
+    cell message35 = create_input_message( 77, 135, -35);   ;; #22 -> out #23 (124, -24)
+    cell message36 = create_input_message( 76, 136, -36);   ;; #23 -> out #11 (125, -25)
+    ;; dozen 3
+
+
+    ;; When: recv_internal
+    var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message3.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message4.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message5.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message6.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message7.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message8.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message9.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message10.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message11.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message12.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 101, -1);
+    var (_, _) = invoke_method(recv_internal, [message13.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message14.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 102, -2);
+    var (_, _) = invoke_method(recv_internal, [message15.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message16.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 103, -3);
+    var (_, _) = invoke_method(recv_internal, [message17.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message18.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 104, -4);
+    var (_, _) = invoke_method(recv_internal, [message19.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message20.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 105, -5);
+    var (_, _) = invoke_method(recv_internal, [message21.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message22.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 106, -6);
+    var (_, _) = invoke_method(recv_internal, [message23.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message24.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 113, -13);
+    var (_, _) = invoke_method(recv_internal, [message25.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 114, -14);
+    var (_, _) = invoke_method(recv_internal, [message26.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 115, -15);
+    var (_, _) = invoke_method(recv_internal, [message27.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 116, -16);
+    var (_, _) = invoke_method(recv_internal, [message28.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 117, -17);
+    var (_, _) = invoke_method(recv_internal, [message29.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 118, -18);
+    var (_, _) = invoke_method(recv_internal, [message30.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 119, -19);
+    var (_, _) = invoke_method(recv_internal, [message31.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 120, -20);
+    var (_, _) = invoke_method(recv_internal, [message32.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 121, -21);
+    var (_, _) = invoke_method(recv_internal, [message33.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 122, -22);
+    var (_, _) = invoke_method(recv_internal, [message34.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 123, -23);
+    var (_, _) = invoke_method(recv_internal, [message35.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 124, -24);
+    var (_, _) = invoke_method(recv_internal, [message36.begin_parse()]);
+    slice out = get_actions();
+    (int, int) actual = parse_one_output_message(out, 125, -25);
+
+    return [actual];
+}
