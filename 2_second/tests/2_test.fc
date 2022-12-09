@@ -138,3 +138,37 @@ _ __test_five_messages() {
 
     return [msg1, msg2, msg3, msg4, msg5];
 }
+
+_ __test_twelve_messages() {
+    ;; Given: empty state
+    set_data(begin_cell().end_cell());
+    ;; messages
+    cell message1 = create_input_message(1, 12, -1);
+    cell message2 = create_input_message(2, 11, -2);
+    cell message3 = create_input_message(3, 10, -3);
+    cell message4 = create_input_message(4, 9, -4);
+    cell message5 = create_input_message(5, 8, -5);
+    cell message6 = create_input_message(6, 7, -6);
+    cell message7 = create_input_message(7, 6, -7);
+    cell message8 = create_input_message(8, 5, -8);
+    cell message9 = create_input_message(9, 4, -9);
+    cell message10 = create_input_message(10, 3, -10);
+    cell message11 = create_input_message(11, 2, -11);
+    cell message12 = create_input_message(12, 1, -12);
+
+    ;; When: recv_internal
+    var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message3.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message4.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message5.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message6.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message7.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message8.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message9.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message10.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message11.begin_parse()]);
+    var (_, _) = invoke_method(recv_internal, [message12.begin_parse()]);
+
+    ;; todo: check output messages
+}
