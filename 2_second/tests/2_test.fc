@@ -6,6 +6,22 @@
             .end_cell();
 }
 
+(cell) create_empty_message(int score, int value) {
+    return begin_cell()
+            .store_uint(score, 32)
+            .store_coins(value)
+            .store_ref(begin_cell().end_cell())
+            .end_cell();
+}
+
+(cell) create_null_message(int score, int value) {
+    return begin_cell()
+            .store_uint(score, 32)
+            .store_coins(value)
+            .store_ref(null())
+            .end_cell();
+}
+
 (int, int) parse_one_output_message(slice messages, int value, int internal_value) impure {
     ;; todo: understand, how is it stored.
     messages~load_ref();
@@ -52,6 +68,22 @@
     throw_if(1001, actual_internal_value2 != internal_value2);
 
     return (actual_value1, actual_internal_value1, actual_value2, actual_internal_value2);
+}
+
+(int, int) parse_empty_output_message(slice messages, int value) impure {
+    ;; todo: understand, how is it stored.
+    messages~load_ref();
+    slice first_msg = messages~load_ref().begin_parse();
+
+    first_msg~load_uint(6);
+    first_msg~load_msg_addr();
+    int actual_value = first_msg~load_coins();
+    first_msg~load_uint(107);
+    int actual_bits = first_msg.slice_bits();
+
+    throw_if(1000, actual_value != value);
+    throw_if(1001, actual_bits != 0);
+    return (actual_value, actual_bits);
 }
 
 _ __test_one_message() {
@@ -513,6 +545,62 @@ _ __test_1000_messages_two_outputs() {
                     (int, int) actual = parse_one_output_message(out, (num - 11) / 2, - (num - 11) / 2);
                 } else {
                     (int, int) actual = parse_one_output_message(out, (num - 21), - (num - 21));
+                }
+            }
+        }
+        num += 1;
+    }
+
+    return ();
+}
+
+_ __test_1000_messages_random() {
+    int total = 1000;
+    int num = 0;
+    repeat(1000) {
+        cell message = create_input_message(rand(4294967295), rand(65535), - num);
+        var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
+        num += 1;
+    }
+
+    return ();
+}
+
+_ __test_empty_message() {
+    ;; one output
+    int total = 36;
+    int num = 0;
+    repeat(total) {
+        cell message = create_empty_message(total - num - 1, num);
+        var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
+        if (num < 11) {
+            assert_no_actions();
+        } else {
+            slice out = get_actions();
+            (int, int) actual = parse_empty_output_message(out, num - 11);
+        }
+        num += 1;
+    }
+
+    ;; clear state
+    set_data(begin_cell().end_cell());
+
+    ;; two outputs
+    int num = 0;
+    repeat(total) {
+        cell message = create_empty_message(num, num);
+        var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
+        if (num < 11) {
+            assert_no_actions();
+        } else {
+            if (num % 2 == 0) {
+                assert_no_actions();
+            } else {
+                slice out = get_actions();
+                if (num < 33) {
+                    (int, int) actual = parse_empty_output_message(out, (num - 11) / 2);
+                } else {
+                    (int, int) actual = parse_empty_output_message(out, (num - 21));
                 }
             }
         }
