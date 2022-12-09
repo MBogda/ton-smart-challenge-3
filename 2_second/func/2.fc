@@ -59,6 +59,15 @@ builder write_current_number(int current_number) inline_ref {
     return begin_cell().store_uint(current_number, 4);
 }
 
+(slice, int) read_node_num(slice node_sl) inline_ref {
+    int node_num = node_sl~load_uint(2) + 1;
+    return (node_sl, node_num);
+}
+
+(builder) write_node_num(builder node_bl, int node_num) inline_ref {
+    return node_bl.store_uint(node_num - 1, 2);
+}
+
 ;; =============== add_message =============================
 
 () add_message(slice storage_sl, int current_number, (int, int, cell) tupled_msg) impure inline {
@@ -86,11 +95,11 @@ builder write_current_number(int current_number) inline_ref {
         } else {
             if (current_number < 10) {
                 ;; 8, 9
-                storage_bl = storage_bl.store_uint(3, 2).store_uint(3, 2);  ;; number of messages in nodes
+                storage_bl = storage_bl.write_node_num(4).write_node_num(4);  ;; number of messages in nodes
                 storage_bl = storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
                 storage_bl = storage_bl.store_ref(storage_sl~load_ref());    ;; second node as is
 
-                int third_num = 0;
+                int third_num = 1;
                 slice third_sl = storage_sl~load_ref().begin_parse();
                 builder third_bl = begin_cell();
                 ;; possible 9th message
@@ -101,28 +110,32 @@ builder write_current_number(int current_number) inline_ref {
                 ;; new message (9th or 10th)
                 third_bl = third_bl.pack(tupled_msg);
 
-                storage_bl = storage_bl.store_uint(third_num, 2).store_ref(third_bl.end_cell());
+                storage_bl = storage_bl.write_node_num(third_num).store_ref(third_bl.end_cell());
                 storage_bl.end_cell().set_data();
             } else {
                 if (current_number < 12) {
                     ;; 10, 11 - check unfilled nodes
 
+                    int packed = false;
                     repeat (3) {
-                        int node_num = storage_sl~load_uint(2) + 1;
-                        if (node_num < 4) {
+                        int node_num = storage_sl~read_node_num();
+                        if ((node_num < 4) & (~ packed)) {
                             slice node_sl = storage_sl~load_ref().begin_parse();
                             builder node_bl = begin_cell();
                             repeat (node_num) {
                                 node_bl = node_bl.pack(node_sl~unpack());
+                                packed = true;
                             }
                             node_bl = node_bl.pack(tupled_msg);
-                            storage_bl = storage_bl.store_uint(node_num + 1 - 1, 2).store_ref(node_bl.end_cell());
+                            storage_bl = storage_bl.write_node_num(node_num + 1).store_ref(node_bl.end_cell());
                         } else {
-                            storage_bl = storage_bl.store_uint(3, 2).store_ref(storage_sl~load_ref());
+                            storage_bl = storage_bl.write_node_num(node_num).store_ref(storage_sl~load_ref());
                         }
                     }
 
                     storage_bl.end_cell().set_data();
+                } else {
+                    throw(666);
                 }
             }
         }
@@ -236,13 +249,13 @@ builder write_current_number(int current_number) inline_ref {
     builder storage_bl = write_current_number(11);
     (slice storage_sl, _) = read_current_number();
     repeat (3) {
-        int node_num = storage_sl~load_uint(2) + 1;
+        int node_num = storage_sl~read_node_num();
         cell node = storage_sl~load_ref();
         if (max_min_msg.null?()) {
             (node, node_num, max_min_msg) = remove_max_min_node_one(node, node_num, max_score, min_value);
-            storage_bl = storage_bl.store_uint(node_num - 1, 2).store_ref(node);
+            storage_bl = storage_bl.write_node_num(node_num).store_ref(node);
         } else {
-            storage_bl = storage_bl.store_uint(node_num - 1, 2).store_ref(node);
+            storage_bl = storage_bl.write_node_num(node_num).store_ref(node);
         }
     }
 
@@ -283,14 +296,14 @@ builder write_current_number(int current_number) inline_ref {
     builder storage_bl = write_current_number(10);
     (slice storage_sl, _) = read_current_number();
     repeat (3) {
-        int node_num = storage_sl~load_uint(2) + 1;
+        int node_num = storage_sl~read_node_num();
         cell node = storage_sl~load_ref();
         if ((max_msg.null?()) | (min_msg.null?())) {
             (node, node_num, max_msg, min_msg) = remove_max_min_node_two(
                     node, node_num, max_msg, min_msg, max_score, min_value);
-            storage_bl = storage_bl.store_uint(node_num - 1, 2).store_ref(node);
+            storage_bl = storage_bl.write_node_num(node_num).store_ref(node);
         } else {
-            storage_bl = storage_bl.store_uint(node_num - 1, 2).store_ref(node);
+            storage_bl = storage_bl.write_node_num(node_num).store_ref(node);
         }
     }
 
@@ -301,7 +314,7 @@ builder write_current_number(int current_number) inline_ref {
 ;; =============== extract_and_send: send_message =============================
 
 () send_message(cell msg, int value) impure inline_ref {
-    ~dump(value);
+;;     ~dump(value);
 ;;     slice tmp = msg.begin_parse();
 ;;     ~dump(tmp);
 ;;     ~dump(tmp~load_int(17));
