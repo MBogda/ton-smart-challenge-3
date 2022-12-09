@@ -1,9 +1,26 @@
-(cell) create_input_message(int score, int value, int internal_value) impure {
+(cell) create_input_message(int score, int value, int internal_value) {
     return begin_cell()
             .store_uint(score, 32)
             .store_coins(value)
             .store_ref(begin_cell().store_int(internal_value, 17).end_cell())
             .end_cell();
+}
+
+(int, int) parse_output_messages(slice messages, int value, int internal_value) impure {
+    ;; todo: understand, how is it stored.
+    messages~load_ref();
+    slice first_msg = messages~load_ref().begin_parse();
+
+    first_msg~load_uint(6);
+    first_msg~load_msg_addr();
+    int actual_value = first_msg~load_coins();
+    first_msg~load_uint(107);
+    slice msg = first_msg~load_bits(17);
+    int actual_internal_value = msg~load_int(17);
+
+    throw_if(1000, actual_value != value);
+    throw_if(1001, actual_internal_value != internal_value);
+    return (actual_value, actual_internal_value);
 }
 
 _ __test_one_message() {
@@ -14,6 +31,7 @@ _ __test_one_message() {
 
     ;; When: recv_internal
     var (int gas_used, _) = invoke_method(recv_internal, [message.begin_parse()]);
+    assert_no_actions();
 
     ;; Then: expected state
     slice sl = get_data().begin_parse();
@@ -44,7 +62,9 @@ _ __test_two_messages() {
 
     ;; When: recv_internal two times
     var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    assert_no_actions();
 
     ;; Then: expected state
     slice sl = get_data().begin_parse();
@@ -86,10 +106,15 @@ _ __test_five_messages() {
 
     ;; When: recv_internal two times
     var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message3.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message4.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message5.begin_parse()]);
+    assert_no_actions();
 
     ;; Then: expected state
     slice sl = get_data().begin_parse();
@@ -158,17 +183,30 @@ _ __test_twelve_messages() {
 
     ;; When: recv_internal
     var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message3.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message4.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message5.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message6.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message7.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message8.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message9.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message10.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message11.begin_parse()]);
+    assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message12.begin_parse()]);
+    slice out12 = get_actions();
+    (int, int) actual = parse_output_messages(out12, 1, -12);
 
-    ;; todo: check output messages
+    return [actual];
 }
