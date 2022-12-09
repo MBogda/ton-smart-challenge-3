@@ -35,14 +35,14 @@
 
 ;; =============== common utils =============================
 
-(slice, (int, int, cell)) unpack(slice sl) inline_ref {
+(slice, (int, int, cell)) unpack(slice sl) inline {
     int score = sl~load_uint(32);
     int value = sl~load_coins();
     cell msg = sl~load_ref();
     return (sl, (score, value, msg));
 }
 
-(builder) pack(builder bl, (int, int, cell) value) inline_ref {
+(builder) pack(builder bl, (int, int, cell) value) inline {
     (int score, int value, cell msg) = value;
     return bl.store_uint(score, 32).store_coins(value).store_ref(msg);
 }
@@ -55,16 +55,16 @@
     return storage_sl.load_uint(4);
 }
 
-builder write_current_number(int current_number) inline_ref {
+builder write_current_number(int current_number) inline {
     return begin_cell().store_uint(current_number, 4);
 }
 
-(slice, int) read_node_num(slice node_sl) inline_ref {
+(slice, int) read_node_num(slice node_sl) inline {
     int node_num = node_sl~load_uint(2) + 1;
     return (node_sl, node_num);
 }
 
-(builder) write_node_num(builder node_bl, int node_num) inline_ref {
+(builder) write_node_num(builder node_bl, int node_num) inline {
     return node_bl.store_uint(node_num - 1, 2);
 }
 
@@ -313,7 +313,7 @@ builder write_current_number(int current_number) inline_ref {
 
 ;; =============== extract_and_send: send_message =============================
 
-() send_message(cell msg, int value) impure inline_ref {
+() send_message(cell msg, int value) impure inline {
 ;;     ~dump(value);
 ;;     slice tmp = msg.begin_parse();
 ;;     ~dump(tmp);
