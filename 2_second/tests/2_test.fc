@@ -55,8 +55,6 @@
 }
 
 _ __test_one_message() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; some message
     cell message = create_input_message(5, 10, -1);
 
@@ -85,8 +83,6 @@ _ __test_one_message() {
 }
 
 _ __test_two_messages() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; two messages
     cell message1 = create_input_message(1, 12, -1);
     cell message2 = create_input_message(2, 11, -2);
@@ -126,8 +122,6 @@ _ __test_two_messages() {
 }
 
 _ __test_five_messages() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; four messages
     cell message1 = create_input_message(1, 12, -1);
     cell message2 = create_input_message(2, 11, -2);
@@ -196,8 +190,6 @@ _ __test_five_messages() {
 }
 
 _ __test_twelve_messages_one_output() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; messages
     cell message1 = create_input_message(1, 12, -1);
     cell message2 = create_input_message(2, 11, -2);
@@ -243,8 +235,6 @@ _ __test_twelve_messages_one_output() {
 }
 
 _ __test_twelve_messages_two_outputs() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; messages
     cell message1 = create_input_message(1, 1, -1);
     cell message2 = create_input_message(2, 2, -2);
@@ -291,8 +281,6 @@ _ __test_twelve_messages_two_outputs() {
 }
 
 _ __test_from_task_description() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; messages
     cell message1 = create_input_message(1, 5, -1);
     cell message2 = create_input_message(2, 6, -2);
@@ -349,8 +337,6 @@ _ __test_from_task_description() {
 }
 
 _ __test_36_messages() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; messages
     ;;                                    max  min
     cell message1  = create_input_message(101, 101,  -1);   ;; #11
@@ -491,8 +477,6 @@ _ __test_36_messages() {
 }
 
 _ __test_1000_messages_one_output() {
-    ;; Given: empty state
-    set_data(begin_cell().end_cell());
     ;; messages
     int total = 1000;
     int num = 0;
@@ -504,6 +488,33 @@ _ __test_1000_messages_one_output() {
         } else {
             slice out = get_actions();
             (int, int) actual = parse_one_output_message(out, num - 11, - num + 11);
+        }
+        num += 1;
+    }
+
+    return ();
+}
+
+_ __test_1000_messages_two_outputs() {
+    ;; messages
+    int total = 1000;
+    int num = 0;
+    repeat(1000) {
+        cell message = create_input_message(num, num, - num);
+        var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
+        if (num < 11) {
+            assert_no_actions();
+        } else {
+            if (num % 2 == 0) {
+                assert_no_actions();
+            } else {
+                slice out = get_actions();
+                if (num < 33) {
+                    (int, int) actual = parse_one_output_message(out, (num - 11) / 2, - (num - 11) / 2);
+                } else {
+                    (int, int) actual = parse_one_output_message(out, (num - 21), - (num - 21));
+                }
+            }
         }
         num += 1;
     }
