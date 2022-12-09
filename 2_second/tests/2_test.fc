@@ -6,7 +6,7 @@
             .end_cell();
 }
 
-(int, int) parse_output_messages(slice messages, int value, int internal_value) impure {
+(int, int) parse_one_output_message(slice messages, int value, int internal_value) impure {
     ;; todo: understand, how is it stored.
     messages~load_ref();
     slice first_msg = messages~load_ref().begin_parse();
@@ -21,6 +21,37 @@
     throw_if(1000, actual_value != value);
     throw_if(1001, actual_internal_value != internal_value);
     return (actual_value, actual_internal_value);
+}
+
+(int, int, int, int) parse_two_output_messages(
+        slice messages, int value1, int internal_value1, int value2, int internal_value2) impure {
+    ;; todo: understand, how is it stored.
+    messages~load_ref();
+    slice first_msg = messages~load_ref().begin_parse();
+
+    first_msg~load_uint(6);
+    first_msg~load_msg_addr();
+    int actual_value1 = first_msg~load_coins();
+    first_msg~load_uint(107);
+    slice msg = first_msg~load_bits(17);
+    int actual_internal_value1 = msg~load_int(17);
+
+    throw_if(1000, actual_value1 != value1);
+    throw_if(1001, actual_internal_value1 != internal_value1);
+
+    slice second_msg = messages~load_ref().begin_parse();
+
+    second_msg~load_uint(6);
+    second_msg~load_msg_addr();
+    int actual_value2 = second_msg~load_coins();
+    second_msg~load_uint(107);
+    slice msg = second_msg~load_bits(17);
+    int actual_internal_value2 = msg~load_int(17);
+
+    throw_if(1000, actual_value2 != value2);
+    throw_if(1001, actual_internal_value2 != internal_value2);
+
+    return (actual_value1, actual_internal_value1, actual_value2, actual_internal_value2);
 }
 
 _ __test_one_message() {
@@ -164,7 +195,7 @@ _ __test_five_messages() {
     return [msg1, msg2, msg3, msg4, msg5];
 }
 
-_ __test_twelve_messages() {
+_ __test_twelve_messages_one_output() {
     ;; Given: empty state
     set_data(begin_cell().end_cell());
     ;; messages
@@ -206,7 +237,55 @@ _ __test_twelve_messages() {
     assert_no_actions();
     var (_, _) = invoke_method(recv_internal, [message12.begin_parse()]);
     slice out12 = get_actions();
-    (int, int) actual = parse_output_messages(out12, 1, -12);
+    (int, int) actual = parse_one_output_message(out12, 1, -12);
+
+    return [actual];
+}
+
+_ __test_twelve_messages_two_outputs() {
+    ;; Given: empty state
+    set_data(begin_cell().end_cell());
+    ;; messages
+    cell message1 = create_input_message(1, 1, -1);
+    cell message2 = create_input_message(2, 2, -2);
+    cell message3 = create_input_message(3, 3, -3);
+    cell message4 = create_input_message(4, 4, -4);
+    cell message5 = create_input_message(5, 5, -5);
+    cell message6 = create_input_message(6, 6, -6);
+    cell message7 = create_input_message(7, 7, -7);
+    cell message8 = create_input_message(8, 8, -8);
+    cell message9 = create_input_message(9, 9, -9);
+    cell message10 = create_input_message(10, 10, -10);
+    cell message11 = create_input_message(11, 11, -11);
+    cell message12 = create_input_message(12, 12, -12);
+
+    ;; When: recv_internal
+    var (_, _) = invoke_method(recv_internal, [message1.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message2.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message3.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message4.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message5.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message6.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message7.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message8.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message9.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message10.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message11.begin_parse()]);
+    assert_no_actions();
+    var (_, _) = invoke_method(recv_internal, [message12.begin_parse()]);
+    slice out12 = get_actions();
+    (int, int) actual = parse_one_output_message(out12, 1, -1); ;; only last (e.g. second) message is achiavable :(
+;;     (int, int, int, int) actual = parse_two_output_messages(out12, 12, -12, 1, -1);
 
     return [actual];
 }

@@ -334,11 +334,11 @@ builder write_current_number(int current_number) inline_ref {
 () recv_internal (slice in_msg_body) impure {
     (int, int, cell) tupled_msg = in_msg_body~unpack();
     ;; load number of current messages
-    ;; if new can be added withour structure reformat - add
+    ;; if new can be added without structure reformat - add
     ;; else - reformat structure
     ;; 1-4 cells - directly in storage cell
     ;; 5-7 cells - first 4 in first parent cell; others directly in storage cell
-    ;; 8-11 cells - first 4 in first parent cell; second 4 in second parent cell; third 3 in third parent cell
+    ;; 8-12 cells - first 4 in first parent cell; second 4 in second parent cell; third 4 in third parent cell
     (slice storage_sl, int current_number) = read_current_number();
     if ((current_number == 0) | (current_number == 4) | (current_number == 7)) {
         reformat(storage_sl, current_number, tupled_msg);
