@@ -576,8 +576,7 @@ _ __test_1000_messages_random() {
     return ();
 }
 
-_ __test_empty_null_message() {
-    ;; one output
+_ __test_empty_null_message_one_output() {
     int total = 36;
     int num = 0;
     repeat(total) {
@@ -585,9 +584,7 @@ _ __test_empty_null_message() {
         if (num % 2 == 0) {
             message = create_empty_message(total - num - 1, num);
         } else {
-            ;; todo: maybe later
-;;             message = create_null_message(total - num - 1, num);
-            message = create_empty_message(total - num - 1, num);
+            message = create_null_message(total - num - 1, num);
         }
         var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
         if (num < 11) {
@@ -599,19 +596,18 @@ _ __test_empty_null_message() {
         num += 1;
     }
 
-    ;; clear state
-    set_data(begin_cell().end_cell());
+    return ();
+}
 
-    ;; two outputs
+_ __test_empty_null_message_two_outputs() {
+    int total = 36;
     int num = 0;
     repeat(total) {
         cell message = null();
         if (num % 2 == 0) {
             message = create_empty_message(num, num);
         } else {
-            ;; todo: maybe later
-            ;;             message = create_null_message(num, num);
-            message = create_empty_message(num, num);
+            message = create_null_message(num, num);
         }
         var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
         if (num < 11) {
