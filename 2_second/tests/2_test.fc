@@ -489,3 +489,24 @@ _ __test_36_messages() {
 
     return [actual];
 }
+
+_ __test_1000_messages_one_output() {
+    ;; Given: empty state
+    set_data(begin_cell().end_cell());
+    ;; messages
+    int total = 1000;
+    int num = 0;
+    repeat(1000) {
+        cell message = create_input_message(total - num - 1, num, - num);
+        var (_, _) = invoke_method(recv_internal, [message.begin_parse()]);
+        if (num < 11) {
+            assert_no_actions();
+        } else {
+            slice out = get_actions();
+            (int, int) actual = parse_one_output_message(out, num - 11, - num + 11);
+        }
+        num += 1;
+    }
+
+    return ();
+}
