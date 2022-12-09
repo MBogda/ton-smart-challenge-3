@@ -200,7 +200,7 @@ builder write_current_number(int current_number) inline_ref {
     slice storage_sl = get_data().begin_parse();
     slice node_sl = storage_sl~load_ref().begin_parse();
     (int max_score, int min_value, _) = node_sl~unpack();
-    int max_value = max_score;
+    int max_value = min_value;
     int same_message = true;
 
     repeat (3) {
