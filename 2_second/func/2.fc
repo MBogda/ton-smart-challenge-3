@@ -244,8 +244,9 @@ builder write_current_number(int current_number) inline_ref {
         if (max_min_msg.null?()) {
             (node, max_min_msg) = replace_max_min_node_one(node, max_score, min_value, tupled_msg);
             storage_bl = storage_bl.store_ref(node);
+        } else {
+            storage_bl = storage_bl.store_ref(node);
         }
-        storage_bl = storage_bl.store_ref(node);
     }
 
     storage_bl.end_cell().set_data();
@@ -291,8 +292,9 @@ builder write_current_number(int current_number) inline_ref {
             (node, max_msg, min_msg) = replace_max_min_node_two(
                     node, max_msg, min_msg, max_score, min_value, tupled_msg);
             storage_bl = storage_bl.store_ref(node);
+        } else {
+            storage_bl = storage_bl.store_ref(node);
         }
-        storage_bl = storage_bl.store_ref(node);
     }
 
     storage_bl.end_cell().set_data();
