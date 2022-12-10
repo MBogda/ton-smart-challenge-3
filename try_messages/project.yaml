@@ -1,0 +1,5 @@
+contract:
+  func:
+  - func/try_messages.fc
+  tests:
+  - tests/try_messages_test.fc

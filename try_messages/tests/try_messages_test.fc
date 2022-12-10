@@ -1,0 +1,33 @@
+(slice, cell) get_head(slice actions) {
+    if (actions.slice_empty?()) {
+        return (actions, null());
+    }
+    slice tail = actions~load_ref().begin_parse();
+    cell head = actions~load_ref();
+    return (tail, head);
+}
+
+_ __test_two_messages() {
+    var (_, _) = invoke_method(recv_internal, []);
+
+    slice actions = get_actions();
+    ~dump(actions);
+
+    slice last_message = actions~get_head().begin_parse();
+    ~dump(last_message);
+    slice last_message_body = last_message~load_ref().begin_parse();
+    ~dump(last_message_body);
+
+    ~dump(actions);
+
+    ;; means second last here
+    slice second_message = actions~get_head().begin_parse();
+    ~dump(second_message);
+    slice second_message_body = second_message~load_ref().begin_parse();
+    ~dump(second_message_body);
+
+    ~dump(actions);
+
+    cell third_message = actions~get_head();
+    throw_unless(100, third_message.null?());
+}
