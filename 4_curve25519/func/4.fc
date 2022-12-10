@@ -5,6 +5,9 @@
 ;; Curve25519 paper: https://cr.yp.to/ecdh/curve25519-20060209.pdf
 ;; (but don't use it if you know nothing about Curve25519 - try to start with something like Wikipedia)
 
+;; This paper was suggested in chat to learn Curve25519, but I almost didn't use it
+;; https://www.cl.cam.ac.uk/teaching/2122/Crypto/curve25519.pdf
+
 ;; General Montgomery curve: B * y^2 = x^3 + A * x^2 + x
 ;; Curve25519: y^2 = x^3 + 486662 * x^2 + x
 const A = 486662;
@@ -12,7 +15,7 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
 
 ;; =============== Field arithmetic functions =============================
 ;; todo optimization: check gas usage for inline_ref
-(int, int) muldivmod(int a, int b, int s) inline asm "MULDIVMOD";
+;; (int, int) muldivmod(int a, int b, int s) inline asm "MULDIVMOD";
 
 (int) add_(int a, int b) inline {
     return (a + b) % p;
@@ -91,12 +94,12 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
   Formulas for addition and doubling: https://en.wikipedia.org/wiki/Montgomery_curve#Addition
 -}
 
-(int, int) lambda_distinct(int x1, int y1, int x2, int y2) inline {
+(int) lambda_distinct(int x1, int y1, int x2, int y2) inline {
     ;; (y2 - y1) / (x2 - x1)
     return div_(sub_(y2, y1), sub_(x2, x1));
 }
 
-(int, int) lambda_coincident(int x, int y) inline {
+(int) lambda_coincident(int x, int y) inline {
     ;; (3 * x^2 + 2 * A * x + 1) / (2 * y)
     return div_(add_(add_(mul_(3, mul_(x, x)), mul_(2, mul_(A, x))), 1), mul_(2, y));
 }
@@ -115,13 +118,13 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
 
     ;; x3 = l^2 - A - x1 - x2;
     ;; y3 = l * (2 * x1 + x2 + A) - l^3 - y1;
-    x3 = sub_(sub_(sub_(mul_(l, l), A), x1), x2);
-    y3 = sub_(sub_(mul_(l, add_(mul_(2, x1), add_(x2, A))), mul_(mul_(l, l), l)), y1);
+    int x3 = sub_(sub_(sub_(mul_(l, l), A), x1), x2);
+    int y3 = sub_(sub_(mul_(l, add_(mul_(2, x1), add_(x2, A))), mul_(mul_(l, l), l)), y1);
     return (x3, y3);
 }
 
 ;; testable
-int mul(int x1, int factor) {
+(int) mul(int x1, int factor) {
     ;; return x coordinate of Point1 * factor
     ;; Algorithm from here:
     ;; https://mailarchive.ietf.org/arch/msg/cfrg/pt2bt3fGQbNF8qdEcorp-rJSJrc/
@@ -136,18 +139,19 @@ int mul(int x1, int factor) {
     ;;      z2,z3 = cswap(z2,z3,bit)
     ;;    return x2*z2^(p-2)
 
-    (int x2, int z2, int x3, int z3) = (1, 0, x1, 1);
-    (int x3, z3) = (0, 0);
-    int bits_factor = 255;
-    while (bits_factor >= 0) {
-        int bit = 1 & (factor >> bits_factor);
-        if (bit) {
-
-        } else {
-
-        }
-    }
+;;     (int x2, int z2, int x3, int z3) = (1, 0, x1, 1);
+;;     (int x3, z3) = (0, 0);
+;;     int bits_factor = 255;
+;;     while (bits_factor >= 0) {
+;;         int bit = 1 & (factor >> bits_factor);
+;;         if (bit) {
+;;
+;;         } else {
+;;
+;;         }
+;;     }
+    return 0;
 }
 
 ;; =============== recv_internal =============================
-() recv_internal () {}
+() recv_internal () { }

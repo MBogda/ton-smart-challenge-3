@@ -1,33 +1,13 @@
-(slice, cell) get_head(slice actions) {
-    if (actions.slice_empty?()) {
-        return (actions, null());
-    }
-    slice tail = actions~load_ref().begin_parse();
-    cell head = actions~load_ref();
-    return (tail, head);
-}
+_ __test_add() {
+    int x1 = 56391866308239752110494101482511933051315484376135027248208522567059122930692;
+    int y1 = 17671033459111968710988296061676524036652749365424210951665329683594356030064;
+    int x2 = 39028180402644761518992797890514644768585183933988208227318855598921766377692;
+    int y2 = 17694324391104469229766971147677885172552105420452910290862122102896539285628;
+    int expected_x = 7769460008531208039267550090770832052561793182665100660016059978850497673345;
+    int expected_y = 50777594312607721283178588283812137388073334114015585272572035433724485979392;
+    var (_, stack) = invoke_method(add, [x1, y1, x2, y2]);
+    [(int actual_x, int actual_y)] = stack;
 
-_ __test_two_messages() {
-    var (_, _) = invoke_method(recv_internal, []);
-
-    slice actions = get_actions();
-    ~dump(actions);
-
-    slice last_message = actions~get_head().begin_parse();
-    ~dump(last_message);
-    slice last_message_body = last_message~load_ref().begin_parse();
-    ~dump(last_message_body);
-
-    ~dump(actions);
-
-    ;; means second last here
-    slice second_message = actions~get_head().begin_parse();
-    ~dump(second_message);
-    slice second_message_body = second_message~load_ref().begin_parse();
-    ~dump(second_message_body);
-
-    ~dump(actions);
-
-    cell third_message = actions~get_head();
-    throw_unless(100, third_message.null?());
+    throw_if(100, expected_x != actual_x);
+    throw_if(101, expected_y != actual_y);
 }
