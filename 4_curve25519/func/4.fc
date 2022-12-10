@@ -1,0 +1,70 @@
+{-
+  Implement Curve25519 addition and multiplication.
+-}
+
+{-
+  Formulas (inluding addition, not only multiplication) are here:
+  https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Montgomery_ladder
+-}
+
+;; (int, int) mymuldivmod(int x, int y, int z) asm "MULDIVMOD";
+;; int gcd(int a, int b) method_id {
+;;    return a > 0 ? gcd(b % a, a) : b;
+;; }
+
+() recv_internal () {
+}
+
+(int, int) lambda_distinct(int x1, int y1, int x2, int y2) inline {
+    return (y2 - y1) / (x2 - x1);
+}
+
+(int, int) lambda_coincident(int x, int y) inline {
+    return (3 * x * x + 1) / (2 * y);
+}
+
+;; testable
+(int, int) add(int x1, int y1, int x2, int y2) {
+    ;; return x,y coordinate of Point1 + Point2
+
+    int lambda = 0;
+    if ((x1 == x2) & (y1 == y2)) {
+        lambda = lambda_coincident(x1, y1);
+    } else {
+        lambda = lambda_distinct(x1, y1, x2, y2);
+    }
+
+    ;; todo optimization?: store common parts in a variable (like (x1 - x2))
+    int x3 = lambda * lambda - x1 - x2;
+    int y3 = lambda * (x1 - x2) - y1;
+    return (x3, y3);
+}
+
+;; testable
+int mul(int x1, int factor) {
+    ;; return x coordinate of Point1 * factor
+    ;; Algorithm from here:
+    ;; https://mailarchive.ietf.org/arch/msg/cfrg/pt2bt3fGQbNF8qdEcorp-rJSJrc/
+    ;;    x2,z2,x3,z3 = 1,0,x1,1
+    ;;    for i in reversed(range(255)):
+    ;;      bit = 1 & (n >> i)
+    ;;      x2,x3 = cswap(x2,x3,bit)
+    ;;      z2,z3 = cswap(z2,z3,bit)
+    ;;      x3,z3 = ((x2*x3-z2*z3)^2,x1*(x2*z3-z2*x3)^2)
+    ;;      x2,z2 = ((x2^2-z2^2)^2,4*x2*z2*(x2^2+A*x2*z2+z2^2))
+    ;;      x2,x3 = cswap(x2,x3,bit)
+    ;;      z2,z3 = cswap(z2,z3,bit)
+    ;;    return x2*z2^(p-2)
+
+    (int x2, int z2, int x3, int z3) = (1, 0, x1, 1);
+    (int x3, z3) = (0, 0);
+    int bits_factor = 255;
+    while (bits_factor >= 0) {
+        int bit = 1 & (factor >> bits_factor);
+        if (bit) {
+
+        } else {
+
+        }
+    }
+}
