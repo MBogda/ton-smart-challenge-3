@@ -25,6 +25,7 @@ def exp_(a, b):
     bit = 1 << 255
     res = 1
     while bit > 0:
+        # todo: optimization (for func): if not bit_one: continue
         res = mul_(res, res)
         if bit & b:
             res = mul_(res, a)
@@ -111,19 +112,26 @@ def swap(a, b, bit):
 
 def mul(x1, factor):
     x2, z2, x3, z3 = 1, 0, x1, 1
-    for i in range(254, -1, -1):
-        bit = 1 & (factor >> i)
-        x2, x3 = swap(x2, x3, bit)
-        z2, z3 = swap(z2, z3, bit)
+    bit = 1 << 255
+    while bit > 0:
+        bit_one = bit & factor
+        # todo: optimization (for func): if not bit_one: continue
+
+        x2, x3 = swap(x2, x3, bit_one)
+        z2, z3 = swap(z2, z3, bit_one)
+
         # x3, z3 = ((x2 * x3 - z2 * z3)^2, x1 * (x2 * z3 - z2 * x3)^2)
         v1 = sub_(mul_(x2, x3), mul_(z2, z3))
         v2 = sub_(mul_(x2, z3), mul_(z2, x3))
         x3, z3 = (mul_(v1, v1), mul_(x1, mul_(v2, v2)))
+
         # x2, z2 = ((x2^2 - z2^2)^2, 4 * x2 * z2 * (x2^2 + A * x2 * z2 + z2^2))
         v1 = sub_(mul_(x2, x2), mul_(z2, z2))
         x2, z2 = (mul_(v1, v1), mul_(mul_(mul_(4, x2), z2), add_(add_(mul_(x2, x2), mul_(A, mul_(x2, z2))), mul_(z2, z2))))
-        x2, x3 = swap(x2, x3, bit)
-        z2, z3 = swap(z2, z3, bit)
+        x2, x3 = swap(x2, x3, bit_one)
+        z2, z3 = swap(z2, z3, bit_one)
+
+        bit >>= 1
     return mul_(x2, exp_(z2, p - 2))
 
 
