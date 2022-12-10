@@ -2,17 +2,88 @@
   Implement Curve25519 addition and multiplication.
 -}
 
+;; Curve25519 paper: https://cr.yp.to/ecdh/curve25519-20060209.pdf
+;; (but don't use it if you know nothing about Curve25519 - try to start with something like Wikipedia)
+
+;; General Montgomery curve: B * y^2 = x^3 + A * x^2 + x
+;; Curve25519: y^2 = x^3 + 486662 * x^2 + x
+const A = 486662;
+const p = (1 << 255) - 19;   ;; 2^255 - 19
+
+;; =============== Field arithmetic functions =============================
+;; todo optimization: check gas usage for inline_ref
+(int, int) muldivmod(int a, int b, int s) inline asm "MULDIVMOD";
+
+(int) add_(int a, int b) inline {
+    return (a + b) % p;
+}
+
+(int) sub_(int a, int b) inline {
+    return (a - b) % p;
+}
+
+(int) mul_(int a, int b) inline {
+    return (a * b) % p;
+}
+
+(int) exp_(int a, int b) inline {
+    int bit = 1 << 255;
+    int exp = 1;
+    while (bit > 0) {
+        int bit_one = bit & b;  ;; current bit is 1
+        if ((exp != 1) | bit_one) {     ;; todo optimization: check without skipping
+            exp = mul_(exp, exp);
+            if (bit_one) {
+                exp = mul_(exp, a);
+            }
+        }
+        bit >>= 1;
+    }
+    return exp;
+}
+
+;; =============== Field arithmetic functions: div_ =============================
 {-
-  Formulas (inluding addition, not only multiplication) are here:
-  https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Montgomery_ladder
+  Code from here: https://ru.wikipedia.org/wiki/Расширенный_алгоритм_Евклида#Псевдокод
+  or here: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Pseudocode
+
+  function extended_gcd(a, b)
+      (old_r, r) := (a, b)
+      (old_s, s) := (1, 0)
+      (old_t, t) := (0, 1)
+
+      while r ≠ 0 do
+          quotient := old_r div r
+          (old_r, r) := (r, old_r − quotient × r)
+          (old_s, s) := (s, old_s − quotient × s)
+          (old_t, t) := (t, old_t − quotient × t)
+
+      output "Bézout coefficients:", (old_s, old_t)
+      output "greatest common divisor:", old_r
+      output "quotients by the gcd:", (t, s)
 -}
+(int, int) extended_gcd(a, b) inline {
+    (int old_r, int r) = (a, b);
+    (int old_s, int s) = (1, 0);
+    (int old_t, int t) = (0, 1);
+    while (r != 0) {
+        ;; todo: use muldivmod here?
+        int quotient = old_r / r;
+        (old_r, r) = (r, old_r - quotient * r);
+        (old_s, s) = (s, old_s - quotient * s);
+        (old_t, t) = (t, old_t - quotient * t);
+    }
+    return (old_s, old_t);
+}
 
-;; (int, int) mymuldivmod(int x, int y, int z) asm "MULDIVMOD";
-;; int gcd(int a, int b) method_id {
-;;    return a > 0 ? gcd(b % a, a) : b;
-;; }
-
-() recv_internal () {
+{-
+  a / b = a * 1/b;
+  Let's find 1/b using Bézout's identity: a * s + b * t = gcd(a, b)
+  Use gcd(b, p) and get the s = 1/b in field defined by prime p. (b * s + p * t = gcd(b, p) => b * s + 0 = 1 => s = 1/b)
+-}
+(int) div_(int a, int b) {
+    (int s, int t) = extended_gcd(b, p);
+    return mul_(a, s);
 }
 
 (int, int) lambda_distinct(int x1, int y1, int x2, int y2) inline {
@@ -68,3 +139,6 @@ int mul(int x1, int factor) {
         }
     }
 }
+
+;; =============== recv_internal =============================
+() recv_internal () {}

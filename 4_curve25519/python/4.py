@@ -1,6 +1,7 @@
 import unittest
 
 # General Curve25519 paper: https://cr.yp.to/ecdh/curve25519-20060209.pdf
+# (but don't use it if you know nothing about Curve25519 - try to start with something like Wikipedia)
 
 # General Montgomery curve: B y^2 = x^3 + A * x^2 + x
 # Curve25519: y^2 = x^3 + 486662 * x^2 + x
@@ -16,7 +17,6 @@ def sub_(a, b):
     return (a - b) % p
 
 
-# muldivmod in func
 def mul_(a, b):
     return (a * b) % p
 
@@ -25,7 +25,7 @@ def exp_(a, b):
     bit = 1 << 255
     res = 1
     while bit > 0:
-        # todo: optimization (for func): if not bit_one: continue
+        # optimization (for func): skip first 0-s
         res = mul_(res, res)
         if bit & b:
             res = mul_(res, a)
@@ -46,9 +46,9 @@ def exp_(a, b):
 #         (old_s, s) := (s, old_s − quotient × s)
 #         (old_t, t) := (t, old_t − quotient × t)
 #
-#     output "коэффициенты Безу:", (old_s, old_t)
-#     output "наибольший общий делитель:", old_r
-#     output "частные от деления на НОД:", (t, s)
+#         output "Bézout coefficients:", (old_s, old_t)
+#         output "greatest common divisor:", old_r
+#         output "quotients by the gcd:", (t, s)
 def extended_gcd(a, b):
     old_r, r = a, b
     old_s, s = 1, 0
@@ -63,8 +63,8 @@ def extended_gcd(a, b):
 
 def div_(a, b):
     # a / b = a * 1/b;
-    # find (a/b) using Bézout's identity: a * s + b * t = gcd(a, b)
-    # use b = p and get the s = 1/a in field defined by prime p. (a * s + p * t = gcd(a, p) => a * s + 0 = 1)
+    # Let's find 1/b using Bézout's identity: a * s + b * t = gcd(a, b)
+    # Use gcd(b, p) and get the s = 1/b in field defined by prime p. (b * s + p * t = gcd(b, p) => b * s + 0 = 1 => s = 1/b)
     s, t = extended_gcd(b, p)
     return mul_(a, s)
 
@@ -115,7 +115,7 @@ def mul(x1, factor):
     bit = 1 << 255
     while bit > 0:
         bit_one = bit & factor
-        # todo: optimization (for func): if not bit_one: continue
+        # optimization (for func): skip first 0-s
 
         x2, x3 = swap(x2, x3, bit_one)
         z2, z3 = swap(z2, z3, bit_one)
