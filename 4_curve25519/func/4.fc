@@ -86,28 +86,37 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
     return mul_(a, s);
 }
 
+;; =============== Montgomery curve addition and doubling =============================
+{-
+  Formulas for addition and doubling: https://en.wikipedia.org/wiki/Montgomery_curve#Addition
+-}
+
 (int, int) lambda_distinct(int x1, int y1, int x2, int y2) inline {
-    return (y2 - y1) / (x2 - x1);
+    ;; (y2 - y1) / (x2 - x1)
+    return div_(sub_(y2, y1), sub_(x2, x1));
 }
 
 (int, int) lambda_coincident(int x, int y) inline {
-    return (3 * x * x + 1) / (2 * y);
+    ;; (3 * x^2 + 2 * A * x + 1) / (2 * y)
+    return div_(add_(add_(mul_(3, mul_(x, x)), mul_(2, mul_(A, x))), 1), mul_(2, y));
 }
 
 ;; testable
 (int, int) add(int x1, int y1, int x2, int y2) {
-    ;; return x,y coordinate of Point1 + Point2
+    ;; return x, y coordinate of Point1 + Point2
 
-    int lambda = 0;
+    int l = 0;
+    ;; addition result is only finite valid point on the curve, so no need to check ((x1 == x2) & (y1 == -y2))
     if ((x1 == x2) & (y1 == y2)) {
-        lambda = lambda_coincident(x1, y1);
+        l = lambda_coincident(x1, y1);
     } else {
-        lambda = lambda_distinct(x1, y1, x2, y2);
+        l = lambda_distinct(x1, y1, x2, y2);
     }
 
-    ;; todo optimization?: store common parts in a variable (like (x1 - x2))
-    int x3 = lambda * lambda - x1 - x2;
-    int y3 = lambda * (x1 - x2) - y1;
+    ;; x3 = l^2 - A - x1 - x2;
+    ;; y3 = l * (2 * x1 + x2 + A) - l^3 - y1;
+    x3 = sub_(sub_(sub_(mul_(l, l), A), x1), x2);
+    y3 = sub_(sub_(mul_(l, add_(mul_(2, x1), add_(x2, A))), mul_(mul_(l, l), l)), y1);
     return (x3, y3);
 }
 

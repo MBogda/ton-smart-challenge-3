@@ -69,15 +69,15 @@ def div_(a, b):
     return mul_(a, s)
 
 
-# Formulas for addition/doubling: https://en.wikipedia.org/wiki/Montgomery_curve#Addition
+# Formulas for addition and doubling: https://en.wikipedia.org/wiki/Montgomery_curve#Addition
 def lambda_distinct(x1, y1, x2, y2):
     # (y2 - y1) / (x2 - x1)
     return div_(sub_(y2, y1), sub_(x2, x1))
 
 
 def lambda_coincident(x, y):
-    # todo: field arithmetic
-    return (3 * x * x + 2 * A * x + 1) // (2 * y)
+    # (3 * x^2 + 2 * A * x + 1) / (2 * y)
+    return div_(add_(add_(mul_(3, mul_(x, x)), mul_(2, mul_(A, x))), 1), mul_(2, y))
 
 
 def add(x1, y1, x2, y2):
@@ -88,7 +88,7 @@ def add(x1, y1, x2, y2):
         l = lambda_distinct(x1, y1, x2, y2)
 
     # x3 = l^2 - A - x1 - x2
-    # y3 = l * (2 * x1 + x2 + A) - l * l * l - y1
+    # y3 = l * (2 * x1 + x2 + A) - l^3 - y1
     x3 = sub_(sub_(sub_(mul_(l, l), A), x1), x2)
     y3 = sub_(sub_(mul_(l, add_(mul_(2, x1), add_(x2, A))), mul_(mul_(l, l), l)), y1)
     return x3, y3
