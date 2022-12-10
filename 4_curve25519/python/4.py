@@ -1,11 +1,11 @@
 import unittest
 
+# General Curve25519 paper: https://cr.yp.to/ecdh/curve25519-20060209.pdf
+
 # General Montgomery curve: B y^2 = x^3 + A * x^2 + x
 # Curve25519: y^2 = x^3 + 486662 * x^2 + x
 A = 486662
-p = 2 ** 255 - 19
-
-# Formulas for addition: https://en.wikipedia.org/wiki/Montgomery_curve#Addition
+p = (1 << 255) - 19   # python (2 ** 255 - 19) or math (2^255 - 19)
 
 
 def add_(a, b):
@@ -22,10 +22,18 @@ def mul_(a, b):
 
 
 def exp_(a, b):
-    pass    # todo
+    bit = 1 << 255
+    res = 1
+    while bit > 0:
+        res = mul_(res, res)
+        if bit & b:
+            res = mul_(res, a)
+        bit >>= 1
+    return res
 
 
-# https://ru.wikipedia.org/wiki/Расширенный_алгоритм_Евклида#Псевдокод
+# Code from here: https://ru.wikipedia.org/wiki/Расширенный_алгоритм_Евклида#Псевдокод
+# or here: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Pseudocode
 # function extended_gcd(a, b)
 #     (old_r, r) := (a, b)
 #     (old_s, s) := (1, 0)
@@ -53,11 +61,16 @@ def extended_gcd(a, b):
 
 
 def div_(a, b):
+    # a / b = a * 1/b;
+    # find (a/b) using Bézout's identity: a * s + b * t = gcd(a, b)
+    # use b = p and get the s = 1/a in field defined by prime p. (a * s + p * t = gcd(a, p) => a * s + 0 = 1)
     s, t = extended_gcd(b, p)
     return mul_(a, s)
 
 
+# Formulas for addition/doubling: https://en.wikipedia.org/wiki/Montgomery_curve#Addition
 def lambda_distinct(x1, y1, x2, y2):
+    # (y2 - y1) / (x2 - x1)
     return div_(sub_(y2, y1), sub_(x2, x1))
 
 
@@ -69,14 +82,14 @@ def lambda_coincident(x, y):
 def add(x1, y1, x2, y2):
     # addition result is only finite valid point on the curve, so no need to check (x1 == x2 and y1 == -y2)
     if (x1 == x2) and (y1 == y2):
-        lambda_ = lambda_coincident(x1, y1)
+        l = lambda_coincident(x1, y1)
     else:
-        lambda_ = lambda_distinct(x1, y1, x2, y2)
+        l = lambda_distinct(x1, y1, x2, y2)
 
-    # x3 = lambda_ * lambda_ - A - x1 - x2
-    # y3 = lambda_ * (2 * x1 + x2 + A) - lambda_ * lambda_ * lambda_ - y1
-    x3 = sub_(sub_(sub_(mul_(lambda_, lambda_), A), x1), x2)
-    y3 = sub_(sub_(mul_(lambda_, add_(mul_(2, x1), add_(x2, A))), mul_(mul_(lambda_, lambda_), lambda_)), y1)
+    # x3 = l^2 - A - x1 - x2
+    # y3 = l * (2 * x1 + x2 + A) - l * l * l - y1
+    x3 = sub_(sub_(sub_(mul_(l, l), A), x1), x2)
+    y3 = sub_(sub_(mul_(l, add_(mul_(2, x1), add_(x2, A))), mul_(mul_(l, l), l)), y1)
     return x3, y3
 
 # https://mailarchive.ietf.org/arch/msg/cfrg/pt2bt3fGQbNF8qdEcorp-rJSJrc/
@@ -93,23 +106,25 @@ def add(x1, y1, x2, y2):
 
 
 def swap(a, b, bit):
-    if bit:
-        return b, a
-    else:
-        return a, b
+    return (b, a) if bit else (a, b)
 
 
 def mul(x1, factor):
     x2, z2, x3, z3 = 1, 0, x1, 1
-    for i in range(255, 0, -1):
+    for i in range(254, -1, -1):
         bit = 1 & (factor >> i)
         x2, x3 = swap(x2, x3, bit)
         z2, z3 = swap(z2, z3, bit)
-        x3, z3 = ((x2 * x3 - z2 * z3) ** 2, x1 * (x2 * z3 - z2 * x3) ** 2)
-        x2, z2 = ((x2 ** 2 - z2 ** 2) ** 2, 4 * x2 * z2 * (x2 ** 2 + A * x2 * z2 + z2 ** 2))
+        # x3, z3 = ((x2 * x3 - z2 * z3)^2, x1 * (x2 * z3 - z2 * x3)^2)
+        v1 = sub_(mul_(x2, x3), mul_(z2, z3))
+        v2 = sub_(mul_(x2, z3), mul_(z2, x3))
+        x3, z3 = (mul_(v1, v1), mul_(x1, mul_(v2, v2)))
+        # x2, z2 = ((x2^2 - z2^2)^2, 4 * x2 * z2 * (x2^2 + A * x2 * z2 + z2^2))
+        v1 = sub_(mul_(x2, x2), mul_(z2, z2))
+        x2, z2 = (mul_(v1, v1), mul_(mul_(mul_(4, x2), z2), add_(add_(mul_(x2, x2), mul_(A, mul_(x2, z2))), mul_(z2, z2))))
         x2, x3 = swap(x2, x3, bit)
         z2, z3 = swap(z2, z3, bit)
-    return x2 * z2 ** (p - 2)
+    return mul_(x2, exp_(z2, p - 2))
 
 
 class Test(unittest.TestCase):
