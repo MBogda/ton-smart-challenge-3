@@ -26,7 +26,8 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
 }
 
 (int) mul_(int a, int b) inline {
-    return (a * b) % p;
+    (_, int r) = muldivmod(a, b, p);
+    return r;
 }
 
 (int) exp_(int a, int b) inline {
@@ -70,11 +71,15 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
     (int old_s, int s) = (1, 0);
     (int old_t, int t) = (0, 1);
     while (r != 0) {
-        ;; todo: use muldivmod here?
+;;         int quotient = old_r / r;
+;;         (old_r, r) = (r, old_r - quotient * r);
+;;         (old_s, s) = (s, old_s - quotient * s);
+;;         (old_t, t) = (t, old_t - quotient * t);
+        ;; todo: delete if unnecessary
         int quotient = old_r / r;
-        (old_r, r) = (r, old_r - quotient * r);
-        (old_s, s) = (s, old_s - quotient * s);
-        (old_t, t) = (t, old_t - quotient * t);
+        (old_r, r) = (r, sub_(old_r, mul_(quotient, r)));
+        (old_s, s) = (s, sub_(old_s, mul_(quotient, s)));
+        (old_t, t) = (t, sub_(old_t, mul_(quotient, t)));
     }
     return (old_s, old_t);
 }
@@ -87,6 +92,7 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
 (int) div_(int a, int b) {
     (int s, int t) = extended_gcd(b, p);
     return mul_(a, s);
+;;     return mul_(a, s % p);   ;; todo: delete if unnecessary
 }
 
 ;; =============== Montgomery curve addition and doubling =============================

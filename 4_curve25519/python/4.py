@@ -58,9 +58,12 @@ def extended_gcd(a, b):
     old_t, t = 0, 1
     while r != 0:
         quotient = old_r // r
-        old_r, r = r, old_r - quotient * r
-        old_s, s = s, old_s - quotient * s
-        old_t, t = t, old_t - quotient * t
+#         old_r, r = r, old_r - quotient * r
+#         old_s, s = s, old_s - quotient * s
+#         old_t, t = t, old_t - quotient * t
+        old_r, r = r, sub_(old_r, mul_(quotient, r))
+        old_s, s = s, sub_(old_s, mul_(quotient, s))
+        old_t, t = t, sub_(old_t, mul_(quotient, t))
     return old_s, old_t
 
 
@@ -146,10 +149,10 @@ class Test(unittest.TestCase):
         y2 = 17694324391104469229766971147677885172552105420452910290862122102896539285628
         expected_x = 7769460008531208039267550090770832052561793182665100660016059978850497673345
         expected_y = 50777594312607721283178588283812137388073334114015585272572035433724485979392
-        self.assertEquals(add(x1, y1, x2, y2), (expected_x, expected_y))
+        self.assertEqual(add(x1, y1, x2, y2), (expected_x, expected_y))
 
     def test_mul(self):
         x = 56391866308239752110494101482511933051315484376135027248208522567059122930692
         factor = 4
         expected = 41707806908216107150933211614905026312154955484464515789593741233629885877574
-        self.assertEquals(mul(x, factor), expected)
+        self.assertEqual(mul(x, factor), expected)
