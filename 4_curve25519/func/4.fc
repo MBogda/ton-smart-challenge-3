@@ -35,7 +35,7 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
     int exp = 1;
     while (bit > 0) {
         int bit_one = bit & b;  ;; current bit is 1
-        if ((exp != 1) | bit_one) {     ;; todo optimization: check without skipping
+        if (bit_one | (exp != 1)) {     ;; todo optimization: check without skipping
             exp = mul_(exp, exp);
             if (bit_one) {
                 exp = mul_(exp, a);
@@ -129,34 +129,53 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
     return (x3, y3);
 }
 
+;; =============== Curve25519 Montgomery ladder for multiplication =============================
+{-
+  Used algorithm from this paper:
+  https://mailarchive.ietf.org/arch/msg/cfrg/pt2bt3fGQbNF8qdEcorp-rJSJrc/
+   x2,z2,x3,z3 = 1,0,x1,1
+   for i in reversed(range(255)):
+     bit = 1 & (n >> i)
+     x2,x3 = cswap(x2,x3,bit)
+     z2,z3 = cswap(z2,z3,bit)
+     x3,z3 = ((x2*x3-z2*z3)^2,x1*(x2*z3-z2*x3)^2)
+     x2,z2 = ((x2^2-z2^2)^2,4*x2*z2*(x2^2+A*x2*z2+z2^2))
+     x2,x3 = cswap(x2,x3,bit)
+     z2,z3 = cswap(z2,z3,bit)
+   return x2*z2^(p-2)
+-}
+
+(int, int) swap_(int a, int b, int bit) {
+    return bit ? (b, a) : (a, b);
+}
+
 ;; testable
 (int) mul(int x1, int factor) {
     ;; return x coordinate of Point1 * factor
-    ;; Algorithm from here:
-    ;; https://mailarchive.ietf.org/arch/msg/cfrg/pt2bt3fGQbNF8qdEcorp-rJSJrc/
-    ;;    x2,z2,x3,z3 = 1,0,x1,1
-    ;;    for i in reversed(range(255)):
-    ;;      bit = 1 & (n >> i)
-    ;;      x2,x3 = cswap(x2,x3,bit)
-    ;;      z2,z3 = cswap(z2,z3,bit)
-    ;;      x3,z3 = ((x2*x3-z2*z3)^2,x1*(x2*z3-z2*x3)^2)
-    ;;      x2,z2 = ((x2^2-z2^2)^2,4*x2*z2*(x2^2+A*x2*z2+z2^2))
-    ;;      x2,x3 = cswap(x2,x3,bit)
-    ;;      z2,z3 = cswap(z2,z3,bit)
-    ;;    return x2*z2^(p-2)
 
-;;     (int x2, int z2, int x3, int z3) = (1, 0, x1, 1);
-;;     (int x3, z3) = (0, 0);
-;;     int bits_factor = 255;
-;;     while (bits_factor >= 0) {
-;;         int bit = 1 & (factor >> bits_factor);
-;;         if (bit) {
-;;
-;;         } else {
-;;
-;;         }
-;;     }
-    return 0;
+    (int x2, int z2, int x3, int z3) = (1, 0, x1, 1);
+    int bit = 1 << 255;
+    while (bit > 0) {
+        int bit_one = bit & factor;
+        if (bit_one | (z2 != 0)) {     ;; todo optimization: check without skipping
+            (x2, x3) = swap_(x2, x3, bit_one);
+            (z2, z3) = swap_(z2, z3, bit_one);
+
+            ;; x3, z3 = ((x2 * x3 - z2 * z3)^2, x1 * (x2 * z3 - z2 * x3)^2)
+            int v1 = sub_(mul_(x2, x3), mul_(z2, z3));
+            int v2 = sub_(mul_(x2, z3), mul_(z2, x3));
+            (x3, z3) = (mul_(v1, v1), mul_(x1, mul_(v2, v2)));
+
+            ;; x2, z2 = ((x2^2 - z2^2)^2, 4 * x2 * z2 * (x2^2 + A * x2 * z2 + z2^2))
+            v1 = sub_(mul_(x2, x2), mul_(z2, z2));
+            (x2, z2) = (mul_(v1, v1), mul_(mul_(mul_(4, x2), z2), add_(add_(mul_(x2, x2), mul_(A, mul_(x2, z2))), mul_(z2, z2))));
+
+            (x2, x3) = swap_(x2, x3, bit_one);
+            (z2, z3) = swap_(z2, z3, bit_one);
+        }
+        bit >>= 1;
+    }
+    return mul_(x2, exp_(z2, p - 2));
 }
 
 ;; =============== recv_internal =============================
