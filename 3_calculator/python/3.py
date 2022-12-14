@@ -1,74 +1,169 @@
 import unittest
+from typing import Any, Union
 
 
-def text_calculator(text: str) -> str:
-    return str(eval(text.replace("/", "//")))
+def eval_solution(text: str) -> int:
+    return eval(text.replace("/", "//"))
+
+
+def parse_number(text: str) -> tuple[str, int]:
+    idx = 0
+    while text[idx].isspace():
+        idx += 1
+
+    negative = False
+    if text[idx] == '-':
+        negative = True
+    while text[idx].isspace():
+        idx += 1
+
+    number = 0
+    while text[idx].isdigit():
+        number = number * 10 + int(text[idx])
+        idx += 1
+        if idx == len(text):
+            break
+    return text[idx:], -number if negative else number
+
+
+def parse_operator(text: str) -> tuple[str, str]:
+    idx = 0
+    while text[idx].isspace():
+        idx += 1
+        if idx == len(text):
+            break
+    operator = text[idx]
+    idx += 1
+    return text[idx:], operator
+
+
+def parse_expression(text: str) -> list:
+    text, number = parse_number(text)
+    root: list[Union[int, str, list]] = [number, None, None]
+    node = root
+    while text:
+        text, operator = parse_operator(text)
+        text, number = parse_number(text)
+        if operator in ("*", "/"):
+            node[0] = [node[0], operator, number]
+        elif operator in ("+", "-"):
+            node[1] = operator
+            node[2] = [number, None, None]
+            node = node[2]
+        else:
+            raise ValueError
+    return root
+
+
+def compute_expression(node: list) -> int:
+    if isinstance(node[0], list):
+        left = compute_expression(node[0])
+    else:
+        left = node[0]
+    if isinstance(node[2], list):
+        right = compute_expression(node[2])
+    else:
+        right = node[2]
+
+    if node[1] == "+":
+        return left + right
+    elif node[1] == "-":
+        return left - right
+    elif node[1] == "*":
+        return left * right
+    elif node[1] == "/":
+        return left // right
+    elif node[1] is None:
+        return left
+
+
+def tree_solution(text: str) -> int:
+    node = parse_expression(text)
+    return compute_expression(node)
+
+
+def text_calculator(text: str) -> int:
+    # return eval_solution(text)
+    return tree_solution(text)
 
 
 class Test(unittest.TestCase):
     def test_simple_operations(self):
         input_text = "2 + 3"
-        expected = "5"
+        expected = 5
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_simple_operations2(self):
         input_text = "2 - 3"
-        expected = "-1"
+        expected = -1
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_simple_operations3(self):
         input_text = "2 * 3"
-        expected = "6"
+        expected = 6
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_simple_operations4(self):
         input_text = "2 / 3"
-        expected = "0"
+        expected = 0
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_simple_operations5(self):
         input_text = "(2 + 3)"
-        expected = "5"
+        expected = 5
         self.assertEqual(text_calculator(input_text), expected)
 
     def test_corner_cases(self):
         input_text = "2 + -3"
-        expected = "-1"
+        expected = -1
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_corner_cases2(self):
         input_text = "2"
-        expected = "2"
+        expected = 2
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_corner_cases3(self):
         input_text = "-2"
-        expected = "-2"
+        expected = -2
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_corner_cases4(self):
         input_text = "3 / 3"
-        expected = "1"
+        expected = 1
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_corner_cases5(self):
         input_text = "4 / 3"
-        expected = "1"
+        expected = 1
         self.assertEqual(text_calculator(input_text), expected)
 
     def test_advanced_operations(self):
         input_text = "2 + 2 * 2"
-        expected = "6"
+        expected = 6
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_advanced_operations1(self):
         input_text = "(2 + 2) * 2"
-        expected = "8"
+        expected = 8
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_advanced_operations2(self):
         input_text = "2 + 2 / 4 - 2"
-        expected = "0"
+        expected = 0
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_advanced_operations3(self):
         input_text = "(2 + 2) / (4 - 2)"
-        expected = "2"
+        expected = 2
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_advanced_operations4(self):
         input_text = "(2 + 2) / 4 - 2"
-        expected = "-1"
+        expected = -1
         self.assertEqual(text_calculator(input_text), expected)
 
+    def test_advanced_operations5(self):
         input_text = "(10000 - 84) * (456 / 450 + 22) + 7 / (34 + 12) + 8 / 34 + 9"
-        expected = "228077"
+        expected = 228077
         self.assertEqual(text_calculator(input_text), expected)
