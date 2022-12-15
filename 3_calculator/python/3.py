@@ -196,3 +196,8 @@ class Test(unittest.TestCase):
         input_text = "(10000 - 84) * (456 / 450 + 22) + 7 / (34 + 12) + 8 / 34 + 9"
         expected = 228077
         self.assertEqual(text_calculator(input_text), expected)
+
+    def test_advanced_operations6(self):
+        input_text = "((((4) * (-1)) + 18 - 7 *(-2)*5/4/(-1)) - 500) / ((-2 * (4) + 5) / 2)"
+        expected = 252
+        self.assertEqual(text_calculator(input_text), expected)
