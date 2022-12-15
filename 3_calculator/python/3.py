@@ -37,11 +37,32 @@ def parse_operator(text: str) -> tuple[str, str]:
     return text[idx:], operator
 
 
-def parse_expression(text: str) -> list:
-    text, number = parse_number(text)
-    root: list[Union[int, str, list]] = [number, None, None]
+def if_parenthesis(text: str, open_: bool) -> tuple[str, bool]:
+    idx = 0
+    while text[idx].isspace():
+        idx += 1
+    if open_ and text[idx] == '(':
+        return text[idx + 1:], True
+    if not open_ and text[idx] == ')':
+        return text[idx + 1:], True
+    return text[idx:], False
+
+
+def parse_expression(text: str) -> tuple[str, list]:
+    text, parenthesis = if_parenthesis(text, open_=True)
+    if parenthesis:
+        text, left = parse_expression(text)
+        # text, parenthesis = if_parenthesis(text, open_=False)
+        # if not parenthesis:
+        #     raise ValueError()
+    else:
+        text, left = parse_number(text)
+    root: list[Union[int, str, list]] = [left, None, None]
     node = root
     while text:
+        text, parenthesis = if_parenthesis(text, open_=False)
+        if parenthesis:
+            return text, root
         text, operator = parse_operator(text)
         text, number = parse_number(text)
         if operator in ("*", "/"):
@@ -52,7 +73,7 @@ def parse_expression(text: str) -> list:
             node = node[2]
         else:
             raise ValueError
-    return root
+    return "", root
 
 
 def compute_expression(node: list) -> int:
@@ -78,7 +99,7 @@ def compute_expression(node: list) -> int:
 
 
 def tree_solution(text: str) -> int:
-    node = parse_expression(text)
+    _, node = parse_expression(text)
     return compute_expression(node)
 
 
