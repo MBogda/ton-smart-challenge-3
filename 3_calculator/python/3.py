@@ -6,49 +6,44 @@ def eval_solution(text: str) -> int:
     return eval(text.replace("/", "//"))
 
 
-def parse_number(text: str) -> tuple[str, int]:
+def skip_spaces(text: str) -> str:
     idx = 0
-    while text[idx].isspace():
+    while idx < len(text) and text[idx].isspace():
         idx += 1
+    return text[idx:]
 
+
+def parse_number(text: str) -> tuple[str, int]:
     negative = False
-    if text[idx] == '-':
+    if text[0] == '-':
         negative = True
-    while text[idx].isspace():
-        idx += 1
+        text = skip_spaces(text[1:])
 
     number = 0
-    while text[idx].isdigit():
+    idx = 0
+    while idx < len(text) and text[idx].isdigit():
         number = number * 10 + int(text[idx])
         idx += 1
-        if idx == len(text):
-            break
-    return text[idx:], -number if negative else number
+
+    return skip_spaces(text[idx:]), -number if negative else number
 
 
 def parse_operator(text: str) -> tuple[str, str]:
-    idx = 0
-    while text[idx].isspace():
-        idx += 1
-        if idx == len(text):
-            break
-    operator = text[idx]
-    idx += 1
-    return text[idx:], operator
+    operator = text[0]
+    return skip_spaces(text[1:]), operator
 
 
 def if_parenthesis(text: str, open_: bool) -> tuple[str, bool]:
-    idx = 0
-    while text[idx].isspace():
-        idx += 1
-    if open_ and text[idx] == '(':
-        return text[idx + 1:], True
-    if not open_ and text[idx] == ')':
-        return text[idx + 1:], True
-    return text[idx:], False
+    text = skip_spaces(text)
+    if open_ and text[0] == '(':
+        return skip_spaces(text[1:]), True
+    if not open_ and text[0] == ')':
+        return skip_spaces(text[1:]), True
+    return text, False
 
 
 def parse_expression(text: str) -> tuple[str, list]:
+    text = skip_spaces(text)
     text, parenthesis = if_parenthesis(text, open_=True)
     if parenthesis:
         text, expression = parse_expression(text)
@@ -67,6 +62,7 @@ def parse_expression(text: str) -> tuple[str, list]:
             text, expression = parse_expression(text)
         else:
             text, expression = parse_number(text)
+
         if operator in ("*", "/"):
             node[0] = [node[0], operator, expression]
         elif operator in ("+", "-"):
@@ -152,13 +148,23 @@ class Test(unittest.TestCase):
         self.assertEqual(text_calculator(input_text), expected)
 
     def test_corner_cases4(self):
+        input_text = "    2    "
+        expected = 2
+        self.assertEqual(text_calculator(input_text), expected)
+
+    def test_corner_cases5(self):
         input_text = "3 / 3"
         expected = 1
         self.assertEqual(text_calculator(input_text), expected)
 
-    def test_corner_cases5(self):
+    def test_corner_cases6(self):
         input_text = "4 / 3"
         expected = 1
+        self.assertEqual(text_calculator(input_text), expected)
+
+    def test_corner_cases7(self):
+        input_text = "   (      2    +       3      )      "
+        expected = 5
         self.assertEqual(text_calculator(input_text), expected)
 
     def test_advanced_operations(self):
