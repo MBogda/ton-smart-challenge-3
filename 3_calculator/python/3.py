@@ -110,7 +110,7 @@ def parse_number_stack(text: str, idx: int) -> tuple[int, int]:
     return idx - 1, number
 
 
-def parse_expression_stack(text: str) -> list:
+def parse_expression_postfix(text: str) -> list:
     output = []
     operators_stack = []
     idx = 0
@@ -152,7 +152,7 @@ def parse_expression_stack(text: str) -> list:
     return output
 
 
-def compute_expression_stack(postfix: list) -> int:
+def compute_expression_postfix(postfix: list) -> int:
     operands = []
     for token in postfix:
         if type(token) == int:
@@ -172,15 +172,74 @@ def compute_expression_stack(postfix: list) -> int:
     return operands.pop()
 
 
-def stack_solution(text: str) -> int:
-    postfix = parse_expression_stack(text)
-    return compute_expression_stack(postfix)
+def postfix_solution(text: str) -> int:
+    postfix = parse_expression_postfix(text)
+    return compute_expression_postfix(postfix)
+
+
+def operation_postfix_inplace(operands_stack, operation) -> int:
+    if operation == 'u':
+        operands_stack.append(-operands_stack.pop())
+    elif operation in ('+', '-', '*', '/'):
+        num_r, num_l = operands_stack.pop(), operands_stack.pop()
+        if operation == '+':
+            operands_stack.append(num_l + num_r)
+        elif operation == '-':
+            operands_stack.append(num_l - num_r)
+        elif operation == '*':
+            operands_stack.append(num_l * num_r)
+        elif operation == '/':
+            operands_stack.append(num_l // num_r)
+    return operands_stack
+
+
+def parse_expression_postfix_inplace(text: str) -> int:
+    operands_stack = []
+    operators_stack = []
+    idx = 0
+    unary = True
+    while idx < len(text):
+        symbol = text[idx]
+        if symbol == ' ':
+            pass
+        elif symbol.isdigit():
+            idx, number = parse_number_stack(text, idx)
+            operands_stack.append(number)
+            unary = False
+        elif symbol in ('*', '/'):
+            if operators_stack and operators_stack[-1] in ('*', '/', 'u'):
+                operands_stack = operation_postfix_inplace(operands_stack, operators_stack.pop(-1))
+            operators_stack.append(symbol)
+            unary = True
+        elif symbol in ('+', '-'):
+            if unary and symbol == '-':
+                operators_stack.append('u')
+            else:
+                if operators_stack and operators_stack[-1] in ('+', '-', '*', '/', 'u'):
+                    operands_stack = operation_postfix_inplace(operands_stack, operators_stack.pop(-1))
+                operators_stack.append(symbol)
+            unary = True
+        elif symbol == '(':
+            operators_stack.append('(')
+            unary = True
+        elif symbol == ')':
+            while operators_stack[-1] != '(':
+                operands_stack = operation_postfix_inplace(operands_stack, operators_stack.pop(-1))
+            operators_stack.pop(-1)
+            unary = False
+        else:
+            ValueError()
+        idx += 1
+    while operators_stack:
+        operands_stack = operation_postfix_inplace(operands_stack, operators_stack.pop(-1))
+    return operands_stack[0]
 
 
 def text_calculator(text: str) -> int:
     # return eval_solution(text)
     # return tree_solution(text)
-    return stack_solution(text)
+    # return postfix_solution(text)
+    return parse_expression_postfix_inplace(text)
 
 
 class Test(unittest.TestCase):
