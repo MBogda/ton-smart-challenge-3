@@ -7,7 +7,171 @@
   Division result should be rounded down. It is guaranteed that tests do not contain division by zero.
   -}
 
+const int ZERO = 48;
+const int STAR = 42;
+const int SLASH = 47;
+const int PLUS = 43;
+const int MINUS = 45;
+const int LEFT_PARENTHESIS = 40;
+const int RIGHT_PARENTHESIS = 41;
+const int UNARY_MINUS = 0;
+
+
+(int) can_read_number?(slice text) {
+    if (text.slice_data_empty?()) {
+        return false;
+    }
+    int digit = text.preload_uint(8);
+    return (digit >= ZERO) & (digit <= ZERO + 9);
+}
+
+(slice, int) parse_number(slice text, int digit) {
+    int number = digit;
+    while (can_read_number?(text)) {
+        int digit = text~load_uint(8);
+        number = number * 10 + (digit - ZERO);
+        if (text.slice_data_empty?() & ~ text.slice_refs_empty?()) {
+            text = text~load_ref().begin_parse();
+        }
+    }
+    return (text, number);
+}
+
+(tuple) apply_operation(tuple operands, int operator_) {
+    if (operator_ == UNARY_MINUS) {
+        (int last_operand, operands) = uncons(operands);
+        operands = cons(- last_operand, operands);
+    } else {
+        (int right_operand, operands) = uncons(operands);
+        (int left_operand, operands) = uncons(operands);
+        if (operator_ == PLUS) {
+            operands = cons(left_operand + right_operand, operands);
+        } else {
+            if (operator_ == MINUS) {
+                operands = cons(left_operand - right_operand, operands);
+            } else {
+                if (operator_ == STAR) {
+                    operands = cons(left_operand * right_operand, operands);
+                } else {
+                    if (operator_ == SLASH) {
+                        operands = cons(left_operand / right_operand, operands);
+                    }
+                }
+            }
+        }
+    }
+    return operands;
+}
+
+(int) parse_postfix_inplace(slice text) {
+    tuple operands = null();
+    tuple operators = null();
+    int unary = true;
+    while (~ text.slice_data_empty?()) {
+        int symbol = text~load_uint(8);
+        ;; if symbol == ' ' or something unexpected, then do nothing
+        if ((symbol >= ZERO) & (symbol <= ZERO + 9)) {
+            int number = text~parse_number(symbol);
+            operands = cons(number, operands);
+            unary = false;
+        } else {
+            if ((symbol == STAR) | (symbol == SLASH)) {
+                if (~ operators.null?()) {
+                    int last_operator = car(operators);
+                    if ((last_operator == STAR) | (last_operator == SLASH) | (last_operator == UNARY_MINUS)) {
+                        operators = cdr(operators);
+                        operands = apply_operation(operands, last_operator);
+                    }
+                }
+                operators = cons(symbol, operators);
+                unary = true;
+            } else {
+                if ((symbol == PLUS) | (symbol == MINUS)) {
+                    if (unary & symbol == MINUS) {
+                        operators = cons(UNARY_MINUS, operators);
+                    } else {
+                        if (~ operators.null?()) {
+                            int last_operator = car(operators);
+                            if ((last_operator == PLUS) | (last_operator == MINUS) | (last_operator == STAR)
+                                    | (last_operator == SLASH) | (last_operator == UNARY_MINUS)) {
+                                operators = cdr(operators);
+                                operands = apply_operation(operands, last_operator);
+                            }
+                        }
+                        operators = cons(symbol, operators);
+                    }
+                    unary = true;
+                } else {
+                    if (symbol == LEFT_PARENTHESIS) {
+                        operators = cons(symbol, operators);
+                        unary = true;
+                    } else {
+                        if (symbol == RIGHT_PARENTHESIS) {
+                            (int last_operator, operators) = uncons(operators);
+                            while (last_operator != LEFT_PARENTHESIS) {
+                                operands = apply_operation(operands, last_operator);
+                                (int last_operator, operators) = uncons(operators);
+                            }
+                            unary = false;
+                        }
+                    }
+                }
+            }
+        }
+        if (text.slice_data_empty?() & ~ text.slice_refs_empty?()) {
+            text = text~load_ref().begin_parse();
+        }
+    }
+    if (~ operators.null?()) {
+        (int last_operator, operators) = uncons(operators);
+        operands = apply_operation(operands, last_operator);
+    }
+    return car(operands);
+}
+
+(builder) build_answer_message(int answer) {
+    int bit = 1 << 255;
+    int started = false;
+    builder answer_bl = begin_cell();
+    while (bit > 0) {
+        int bit_one = bit & answer;
+        if (bit_one) {
+            answer_bl = answer_bl.store_uint(1, 1);
+            started = true;
+        } else {
+            if (started) {
+                answer_bl = answer_bl.store_uint(0, 1);
+            }
+        }
+        bit >>= 1;
+    }
+    return answer_bl;
+}
+
+() send_answer(int answer, cell input_message) {
+    slice address = input_message.begin_parse();
+    address~load_uint(6);
+    (address, _) = address.load_msg_addr();
+
+    cell output_message = begin_cell()
+            .store_uint(0x18, 6)
+            .store_slice(address)
+            .store_coins(0)
+            .store_uint(1, 107)
+            ;; message body
+            ;; todo? too long answer
+            .store_uint(0, 32)
+            .store_builder(build_answer_message(answer))
+            .end_cell();
+
+    send_raw_message(output_message, 60);
+}
+
 ;; testable
 () recv_internal (cell message, slice in_msg_body) {
-    ;; Add code here
+    in_msg_body~load_uint(32);
+    ;; todo?
+;;     query_id = in_msg_body~load_uint(64);
+    int answer = in_msg_body.parse_postfix_inplace();
+    send_answer(answer, message);
 }
