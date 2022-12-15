@@ -51,25 +51,27 @@ def if_parenthesis(text: str, open_: bool) -> tuple[str, bool]:
 def parse_expression(text: str) -> tuple[str, list]:
     text, parenthesis = if_parenthesis(text, open_=True)
     if parenthesis:
-        text, left = parse_expression(text)
-        # text, parenthesis = if_parenthesis(text, open_=False)
-        # if not parenthesis:
-        #     raise ValueError()
+        text, expression = parse_expression(text)
     else:
-        text, left = parse_number(text)
-    root: list[Union[int, str, list]] = [left, None, None]
+        text, expression = parse_number(text)
+    root: list[Union[int, str, list]] = [expression, None, None]
     node = root
     while text:
         text, parenthesis = if_parenthesis(text, open_=False)
         if parenthesis:
             return text, root
         text, operator = parse_operator(text)
-        text, number = parse_number(text)
+
+        text, parenthesis = if_parenthesis(text, open_=True)
+        if parenthesis:
+            text, expression = parse_expression(text)
+        else:
+            text, expression = parse_number(text)
         if operator in ("*", "/"):
-            node[0] = [node[0], operator, number]
+            node[0] = [node[0], operator, expression]
         elif operator in ("+", "-"):
             node[1] = operator
-            node[2] = [number, None, None]
+            node[2] = [expression, None, None]
             node = node[2]
         else:
             raise ValueError
