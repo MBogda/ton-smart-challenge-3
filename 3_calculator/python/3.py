@@ -114,26 +114,36 @@ def parse_expression_stack(text: str) -> list:
     output = []
     operators_stack = []
     idx = 0
+    unary = True
     while idx < len(text):
-        if text[idx] == ' ':
+        symbol = text[idx]
+        if symbol == ' ':
             pass
-        elif text[idx].isdigit():
+        elif symbol.isdigit():
             idx, number = parse_number_stack(text, idx)
             output.append(number)
-        elif text[idx] in ('*', '/'):
-            if operators_stack and operators_stack[-1] in ('*', '/'):
+            unary = False
+        elif symbol in ('*', '/'):
+            if operators_stack and operators_stack[-1] in ('*', '/', 'u'):
                 output.append(operators_stack.pop(-1))
-            operators_stack.append(text[idx])
-        elif text[idx] in ('+', '-'):
-            if operators_stack and operators_stack[-1] in ('+', '-', '*', '/'):
-                output.append(operators_stack.pop(-1))
-            operators_stack.append(text[idx])
-        elif text[idx] == '(':
+            operators_stack.append(symbol)
+            unary = True
+        elif symbol in ('+', '-'):
+            if unary and symbol == '-':
+                operators_stack.append('u')
+            else:
+                if operators_stack and operators_stack[-1] in ('+', '-', '*', '/', 'u'):
+                    output.append(operators_stack.pop(-1))
+                operators_stack.append(symbol)
+            unary = True
+        elif symbol == '(':
             operators_stack.append('(')
-        elif text[idx] == ')':
+            unary = True
+        elif symbol == ')':
             while operators_stack[-1] != '(':
                 output.append(operators_stack.pop(-1))
             operators_stack.pop(-1)
+            unary = False
         else:
             ValueError()
         idx += 1
@@ -147,16 +157,14 @@ def compute_expression_stack(postfix: list) -> int:
     for token in postfix:
         if type(token) == int:
             operands.append(token)
-        elif token == '-':
-            if len(operands) == 1:
-                operands.append(-operands.pop())
-            else:
-                num_r, num_l = operands.pop(), operands.pop()
-                operands.append(num_l - num_r)
-        elif token in ('+', '*', '/'):
+        elif token == 'u':
+            operands.append(-operands.pop())
+        elif token in ('+', '-', '*', '/'):
             num_r, num_l = operands.pop(), operands.pop()
             if token == '+':
                 operands.append(num_l + num_r)
+            elif token == '-':
+                operands.append(num_l - num_r)
             elif token == '*':
                 operands.append(num_l * num_r)
             elif token == '/':
