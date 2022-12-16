@@ -155,13 +155,13 @@ const int UNARY_MINUS = 0;
 () send_answer(int answer, cell input_message) {
     slice address = input_message.begin_parse();
     address~load_uint(6);
-    (address, _) = address.load_msg_addr();
+    (_, address) = address.load_msg_addr();
 
     cell output_message = begin_cell()
             .store_uint(0x18, 6)
             .store_slice(address)
             .store_coins(0)
-            .store_uint(1, 107)
+            .store_uint(0, 107)
             ;; message body
             ;; todo? too long answer
             .store_uint(0, 32)
@@ -174,7 +174,7 @@ const int UNARY_MINUS = 0;
 ;; testable
 () recv_internal (cell message, slice in_msg_body) {
     in_msg_body~load_uint(32);
-    ;; todo?
+    ;; text comments are without query_id
 ;;     query_id = in_msg_body~load_uint(64);
     int answer = in_msg_body.parse_postfix_inplace();
     send_answer(answer, message);
