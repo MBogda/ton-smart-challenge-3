@@ -11,10 +11,72 @@ _ __test_simple() {
     slice text = begin_cell()
             .store_uint(2 + ZERO, 8)
             .store_uint(PLUS, 8)
-            .store_uint(2 + ZERO, 8)
+            .store_uint(3 + ZERO, 8)
             .end_cell()
             .begin_parse();
-    int expected = 4;
+    int expected = 5;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_simple2() {
+    slice text = begin_cell()
+            .store_uint(2 + ZERO, 8)
+            .store_uint(MINUS, 8)
+            .store_uint(3 + ZERO, 8)
+            .end_cell()
+            .begin_parse();
+    int expected = -1;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_simple3() {
+    slice text = begin_cell()
+            .store_uint(2 + ZERO, 8)
+            .store_uint(STAR, 8)
+            .store_uint(3 + ZERO, 8)
+            .end_cell()
+            .begin_parse();
+    int expected = 6;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_simple4() {
+    slice text = begin_cell()
+            .store_uint(2 + ZERO, 8)
+            .store_uint(SLASH, 8)
+            .store_uint(3 + ZERO, 8)
+            .end_cell()
+            .begin_parse();
+    int expected = 0;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_simple5() {
+    slice text = begin_cell()
+            .store_uint(LEFT_PARENTHESIS, 8)
+            .store_uint(2 + ZERO, 8)
+            .store_uint(SLASH, 8)
+            .store_uint(3 + ZERO, 8)
+            .store_uint(RIGHT_PARENTHESIS, 8)
+            .end_cell()
+            .begin_parse();
+    int expected = 5;
 
     var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
     [int actual] = stack;
