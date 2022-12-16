@@ -308,32 +308,32 @@ class Test(unittest.TestCase):
         expected = 6
         self.assertEqual(expected, text_calculator(input_text))
 
-    def test_advanced_operations1(self):
+    def test_advanced_operations2(self):
         input_text = "(2 + 2) * 2"
         expected = 8
         self.assertEqual(expected, text_calculator(input_text))
 
-    def test_advanced_operations2(self):
+    def test_advanced_operations3(self):
         input_text = "2 + 2 / 4 - 2"
         expected = 0
         self.assertEqual(expected, text_calculator(input_text))
 
-    def test_advanced_operations3(self):
+    def test_advanced_operations4(self):
         input_text = "(2 + 2) / (4 - 2)"
         expected = 2
         self.assertEqual(expected, text_calculator(input_text))
 
-    def test_advanced_operations4(self):
+    def test_advanced_operations5(self):
         input_text = "(2 + 2) / 4 - 2"
         expected = -1
         self.assertEqual(expected, text_calculator(input_text))
 
-    def test_advanced_operations5(self):
+    def test_advanced_operations6(self):
         input_text = "(10000 - 84) * (456 / 450 + 22) + 7 / (34 + 12) + 8 / 34 + 9"
         expected = 228077
         self.assertEqual(expected, text_calculator(input_text))
 
-    def test_advanced_operations6(self):
+    def test_advanced_operations7(self):
         input_text = "((((4) * (-1)) + 18 - 7 *(-2)*5/4/(-1)) - 500) / ((-2 * (4) + 5) / 2)"
         expected = 252
         self.assertEqual(expected, text_calculator(input_text))

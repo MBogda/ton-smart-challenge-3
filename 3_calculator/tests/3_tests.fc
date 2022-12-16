@@ -61,3 +61,31 @@ _ __test_corner_case6() {
 _ __test_corner_case7() {
     parse_postfix_inplace_helper("   (      2    +       3      )      ", 5);
 }
+
+_ __test_advanced() {
+    parse_postfix_inplace_helper("2 + 2 * 2", 6);
+}
+
+_ __test_advanced2() {
+    parse_postfix_inplace_helper("(2 + 2) * 2", 8);
+}
+
+_ __test_advanced3() {
+    parse_postfix_inplace_helper("2 + 2 / 4 - 2", 0);
+}
+
+_ __test_advanced4() {
+    parse_postfix_inplace_helper("(2 + 2) / (4 - 2)", 2);
+}
+
+_ __test_advanced5() {
+    parse_postfix_inplace_helper("(2 + 2) / 4 - 2", -1);
+}
+
+_ __test_advanced6() {
+    parse_postfix_inplace_helper("(10000 - 84) * (456 / 450 + 22) + 7 / (34 + 12) + 8 / 34 + 9", 228077);
+}
+
+_ __test_advanced7() {
+    parse_postfix_inplace_helper("((((4) * (-1)) + 18 - 7 *(-2)*5/4/(-1)) - 500) / ((-2 * (4) + 5) / 2)", 252);
+}
