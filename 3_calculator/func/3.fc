@@ -168,7 +168,7 @@ const int UNARY_MINUS = 0;
             .store_builder(build_answer_message(answer))
             .end_cell();
 
-    send_raw_message(output_message, 60);
+    send_raw_message(output_message, 64);
 }
 
 ;; testable
