@@ -26,7 +26,7 @@ const int UNARY_MINUS = 0;
 }
 
 (slice, int) parse_number(slice text, int digit) {
-    int number = digit;
+    int number = digit - ZERO;
     while (can_read_number?(text)) {
         int digit = text~load_uint(8);
         number = number * 10 + (digit - ZERO);
