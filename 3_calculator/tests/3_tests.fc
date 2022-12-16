@@ -8,12 +8,7 @@ const int RIGHT_PARENTHESIS = 41;
 const int UNARY_MINUS = 0;
 
 _ __test_simple() {
-    slice text = begin_cell()
-            .store_uint(2 + ZERO, 8)
-            .store_uint(PLUS, 8)
-            .store_uint(3 + ZERO, 8)
-            .end_cell()
-            .begin_parse();
+    slice text = "2 + 3";
     int expected = 5;
 
     var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
@@ -23,12 +18,7 @@ _ __test_simple() {
 }
 
 _ __test_simple2() {
-    slice text = begin_cell()
-            .store_uint(2 + ZERO, 8)
-            .store_uint(MINUS, 8)
-            .store_uint(3 + ZERO, 8)
-            .end_cell()
-            .begin_parse();
+    slice text = "2 - 3";
     int expected = -1;
 
     var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
@@ -38,12 +28,7 @@ _ __test_simple2() {
 }
 
 _ __test_simple3() {
-    slice text = begin_cell()
-            .store_uint(2 + ZERO, 8)
-            .store_uint(STAR, 8)
-            .store_uint(3 + ZERO, 8)
-            .end_cell()
-            .begin_parse();
+    slice text = "2 * 3";
     int expected = 6;
 
     var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
@@ -53,12 +38,7 @@ _ __test_simple3() {
 }
 
 _ __test_simple4() {
-    slice text = begin_cell()
-            .store_uint(2 + ZERO, 8)
-            .store_uint(SLASH, 8)
-            .store_uint(3 + ZERO, 8)
-            .end_cell()
-            .begin_parse();
+    slice text = "2 / 3";
     int expected = 0;
 
     var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
@@ -68,14 +48,77 @@ _ __test_simple4() {
 }
 
 _ __test_simple5() {
-    slice text = begin_cell()
-            .store_uint(LEFT_PARENTHESIS, 8)
-            .store_uint(2 + ZERO, 8)
-            .store_uint(PLUS, 8)
-            .store_uint(3 + ZERO, 8)
-            .store_uint(RIGHT_PARENTHESIS, 8)
-            .end_cell()
-            .begin_parse();
+    slice text = "(2 + 3)";
+    int expected = 5;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_corner_case() {
+    slice text = "2+-3";
+    int expected = -1;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_corner_case2() {
+    slice text = "2";
+    int expected = 2;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_corner_case3() {
+    slice text = "-2";
+    int expected = -2;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_corner_case4() {
+    slice text = "    2    ";
+    int expected = 2;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_corner_case5() {
+    slice text = "3 / 3";
+    int expected = 1;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_corner_case6() {
+    slice text = "4 / 3";
+    int expected = 1;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
+
+_ __test_corner_case7() {
+    slice text = "   (      2    +       3      )      ";
     int expected = 5;
 
     var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
