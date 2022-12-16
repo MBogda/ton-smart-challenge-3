@@ -154,7 +154,7 @@ const int UNARY_MINUS = 0;
 
 () send_answer(int answer, cell input_message) {
     slice address = input_message.begin_parse();
-    address~load_uint(6);
+    address~load_uint(4);
     (_, address) = address.load_msg_addr();
 
     cell output_message = begin_cell()
