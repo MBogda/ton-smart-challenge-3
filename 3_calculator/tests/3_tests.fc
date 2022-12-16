@@ -71,7 +71,7 @@ _ __test_simple5() {
     slice text = begin_cell()
             .store_uint(LEFT_PARENTHESIS, 8)
             .store_uint(2 + ZERO, 8)
-            .store_uint(SLASH, 8)
+            .store_uint(PLUS, 8)
             .store_uint(3 + ZERO, 8)
             .store_uint(RIGHT_PARENTHESIS, 8)
             .end_cell()

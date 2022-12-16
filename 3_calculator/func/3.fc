@@ -110,7 +110,7 @@ const int UNARY_MINUS = 0;
                             (int last_operator, operators) = uncons(operators);
                             while (last_operator != LEFT_PARENTHESIS) {
                                 operands = apply_operation(operands, last_operator);
-                                (int last_operator, operators) = uncons(operators);
+                                (last_operator, operators) = uncons(operators);
                             }
                             unary = false;
                         }
@@ -122,7 +122,7 @@ const int UNARY_MINUS = 0;
             text = text~load_ref().begin_parse();
         }
     }
-    if (~ operators.null?()) {
+    while (~ operators.null?()) {
         (int last_operator, operators) = uncons(operators);
         operands = apply_operation(operands, last_operator);
     }
@@ -130,12 +130,21 @@ const int UNARY_MINUS = 0;
 }
 
 (builder) build_answer_message(int answer) {
+    int negative = answer < 0;
+    if negative {
+        answer = - answer;
+    }
+
     tuple digits = null();
     while (answer > 0) {
         digits = cons(answer % 10, digits);
         answer /= 10;
     }
+
     builder answer_bl = begin_cell();
+    if negative {
+        answer_bl.store_uint(MINUS, 8);
+    }
     while (~ digits.null?()) {
         (int digit, digits) = uncons(digits);
         answer_bl.store_uint(digit + ZERO, 8);
