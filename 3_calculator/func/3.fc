@@ -17,7 +17,7 @@ const int RIGHT_PARENTHESIS = 41;
 const int UNARY_MINUS = 0;
 
 
-(int) can_read_number?(slice text) {
+(int) can_read_number?(slice text) inline {
     if (text.slice_data_empty?()) {
         return false;
     }
@@ -25,7 +25,7 @@ const int UNARY_MINUS = 0;
     return (digit >= ZERO) & (digit <= ZERO + 9);
 }
 
-(slice, int) parse_number(slice text, int digit) {
+(slice, int) parse_number(slice text, int digit) inline {
     int number = digit - ZERO;
     while (can_read_number?(text)) {
         int digit = text~load_uint(8);
@@ -37,7 +37,7 @@ const int UNARY_MINUS = 0;
     return (text, number);
 }
 
-(tuple) apply_operation(tuple operands, int operator_) {
+(tuple) apply_operation(tuple operands, int operator_) inline {
     if (operator_ == UNARY_MINUS) {
         (int last_operand, operands) = uncons(operands);
         operands = cons(- last_operand, operands);
@@ -63,7 +63,7 @@ const int UNARY_MINUS = 0;
     return operands;
 }
 
-(int) parse_postfix_inplace(slice text) {
+(int) parse_postfix_inplace(slice text) inline {
     tuple operands = null();
     tuple operators = null();
     int unary = true;
@@ -152,7 +152,7 @@ const int UNARY_MINUS = 0;
     return answer_bl;
 }
 
-() send_answer(int answer, cell input_message) {
+() send_answer(int answer, cell input_message) impure inline {
     slice address = input_message.begin_parse();
     address~load_uint(4);
     (_, address) = address.load_msg_addr();
