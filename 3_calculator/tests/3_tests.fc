@@ -1,0 +1,23 @@
+const int ZERO = 48;
+const int STAR = 42;
+const int SLASH = 47;
+const int PLUS = 43;
+const int MINUS = 45;
+const int LEFT_PARENTHESIS = 40;
+const int RIGHT_PARENTHESIS = 41;
+const int UNARY_MINUS = 0;
+
+_ __test_simple() {
+    slice text = begin_cell()
+            .store_uint(2 + ZERO, 8)
+            .store_uint(PLUS, 8)
+            .store_uint(2 + ZERO, 8)
+            .end_cell()
+            .begin_parse();
+    int expected = 4;
+
+    var (_, stack) = invoke_method(parse_postfix_inplace, [text]);
+    [int actual] = stack;
+
+    throw_if(100, expected != actual);
+}
