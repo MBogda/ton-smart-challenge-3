@@ -143,11 +143,11 @@ const int UNARY_MINUS = 0;
 
     builder answer_bl = begin_cell();
     if negative {
-        answer_bl.store_uint(MINUS, 8);
+        answer_bl = answer_bl.store_uint(MINUS, 8);
     }
     while (~ digits.null?()) {
         (int digit, digits) = uncons(digits);
-        answer_bl.store_uint(digit + ZERO, 8);
+        answer_bl = answer_bl.store_uint(digit + ZERO, 8);
     }
     return answer_bl;
 }

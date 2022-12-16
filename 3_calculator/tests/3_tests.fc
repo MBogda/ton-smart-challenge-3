@@ -14,6 +14,13 @@ _ parse_postfix_inplace_helper(slice text, int expected) impure {
     throw_if(100, expected != actual);
 }
 
+_ build_answer_message_helper(int answer, slice expected) impure {
+    var (_, stack) = invoke_method(build_answer_message, [answer]);
+    [builder actual] = stack;
+
+    throw_if(100, actual.end_cell().cell_hash() != expected.slice_hash());
+}
+
 _ __test_simple() {
     parse_postfix_inplace_helper("2 + 3", 5);
 }
@@ -88,4 +95,28 @@ _ __test_advanced6() {
 
 _ __test_advanced7() {
     parse_postfix_inplace_helper("((((4) * (-1)) + 18 - 7 *(-2)*5/4/(-1)) - 500) / ((-2 * (4) + 5) / 2)", 252);
+}
+
+_ __test_build_answer_message() {
+    build_answer_message_helper(2, "2");
+}
+
+_ __test_build_answer_message2() {
+    build_answer_message_helper(42, "42");
+}
+
+_ __test_build_answer_message3() {
+    build_answer_message_helper(5165098081578932191, "5165098081578932191");
+}
+
+_ __test_build_answer_message4() {
+    build_answer_message_helper(-2, "-2");
+}
+
+_ __test_build_answer_message5() {
+    build_answer_message_helper(-42, "-42");
+}
+
+_ __test_build_answer_message6() {
+    build_answer_message_helper(-5165098081578932191, "-5165098081578932191");
 }
