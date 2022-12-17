@@ -85,8 +85,14 @@ const int KEY_LEN = 256;
     begin_cell().store_ref(addr2stake).store_ref(stake2info).end_cell().set_data();
 }
 
+() try_elect(int query_id) impure {
+    {-
+      cell-list of winners, cell-list of unused. 3 items per cell.
+    -}
+}
+
 ;; testable
-() recv_internal (int msg_value, cell full_message, slice in_msg_body) {
+() recv_internal(int msg_value, cell full_message, slice in_msg_body) {
     int op = in_msg_body~load_uint(32);
     if (op == 0x5ce28eea) {
         ;; throw query_id

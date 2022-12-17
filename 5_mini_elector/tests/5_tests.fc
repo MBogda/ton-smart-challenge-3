@@ -1,0 +1,6 @@
+_ __test_impure() {
+    slice sl = begin_cell().store_uint(2, 2).end_cell().begin_parse();
+    sl~load_uint(1);
+    int x = sl~load_uint(1);
+    throw_if(100, x != 0);
+}
