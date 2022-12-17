@@ -37,11 +37,61 @@
     by one try_elect and then response and get_method result will be checked.
 -}
 
+const int KEY_LEN = 256;
+
+(slice) extract_address(cell full_message) inline {
+    slice address = full_message.begin_parse();
+    address~load_uint(4);
+    (_, address) = address.load_msg_addr();
+    return address;
+}
+
+(slice) stake_to_slice(int stake) inline {
+    return begin_cell().store_uint(stake, 16).end_cell().begin_parse();
+}
+
+(slice) info_to_slice(int max_factor, slice address) {
+    return begin_cell().store_uint(max_factor, 24).store_slice(address).end_cell().begin_parse();
+}
+
+(int) stake_and_hash(int stake, int hash) inline {
+    stake <<= 240;
+    hash >>= 16;
+    return stake + hash;
+}
+
+() participate(slice address, int stake, int max_factor) impure {
+    {-
+      addr2stake: hash(address) -> stake
+      stake2info: stake + hash(address)[:240] -> address, max_factor
+    -}
+    cell storage = get_data();
+    (cell addr2stake, cell stake2info) = (null(), null());
+    if (~ storage.cell_null?()) {
+        slice storage_sl = storage.begin_parse();
+        (addr2stake, stake2info) = (storage_sl~load_ref(), storage_sl~load_ref());
+    }
+    ;; store addr2stake
+    int addr_hash = address.slice_hash();
+    (slice old_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addr_hash);
+    if (success) {
+        int old_stake = old_stake_sl~load_uint(16);
+        stake += old_stake;
+        stake2info~udict_delete?(KEY_LEN, stake_and_hash(old_stake, addr_hash));
+    }
+    addr2stake~udict_set(KEY_LEN, addr_hash, stake_to_slice(stake));
+    ;; store stake2info
+    stake2info~udict_set(KEY_LEN, stake_and_hash(stake, addr_hash), info_to_slice(max_factor, address));
+    begin_cell().store_ref(addr2stake).store_ref(stake2info).end_cell().set_data();
+}
+
 ;; testable
 () recv_internal (int msg_value, cell full_message, slice in_msg_body) {
-    (int op, int query_id) = (in_msg_body~load_uint(32), in_msg_body~load_uint(64));
+    int op = in_msg_body~load_uint(32);
     if (op == 0x5ce28eea) {
-        ;; todo
+        ;; throw query_id
+        in_msg_body~load_uint(64);
+        participate(extract_address(full_message), msg_value, in_msg_body~load_uint(24));
     }
     if (op == 0x207fa5f5) {
         ;; todo
@@ -50,4 +100,5 @@
 
 ;; testable
 (tuple, tuple) get_stake_table() method_id {
+    return (tpush(null(), 0), tpush(null(), 0));
 }
