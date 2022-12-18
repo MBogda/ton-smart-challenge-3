@@ -13,6 +13,22 @@ forall X -> X tuple_index(tuple t, int index) asm "INDEXVAR";
     return result;
 }
 
+_ check_addr2stake(cell addr2stake, slice address, int stake) impure {
+    (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, address.slice_hash());
+    throw_unless(100, success);
+    int actual_stake = actual_stake_sl~load_uint(16);
+    throw_if(101, actual_stake != stake);
+}
+
+_ check_stake2info(cell stake2info, slice address, int stake, int max_factor) impure {
+    (slice actual_info_sl, int success) = stake2info.udict_get?(KEY_LEN, stake_and_hash(stake, address.slice_hash()));
+    throw_unless(110, success);
+    int actual_max_factor = actual_info_sl~load_uint(24);
+    throw_if(111, actual_max_factor != max_factor);
+    slice actual_address = actual_info_sl~load_bits(actual_info_sl.slice_bits());
+    throw_if(112, address.slice_hash() != actual_address.slice_hash());
+}
+
 _ __test_participate() {
     tuple addresses = util_addresses();
     var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 15, 0]);
@@ -21,17 +37,9 @@ _ __test_participate() {
     cell addr2stake = storage_sl~load_ref();
     cell stake2info = storage_sl~load_ref();
 
-    (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addresses.tuple_index(0).slice_hash());
-    throw_unless(100, success);
-    int actual_stake = actual_stake_sl~load_uint(16);
-    throw_if(101, actual_stake != 15);
+    addr2stake.check_addr2stake(addresses.tuple_index(0), 15);
 
-    (slice actual_info_sl, int success) = stake2info.udict_get?(KEY_LEN, stake_and_hash(15, addresses.tuple_index(0).slice_hash()));
-    throw_unless(110, success);
-    int actual_max_factor = actual_info_sl~load_uint(24);
-    throw_if(111, actual_max_factor != 65536);
-    slice actual_address = actual_info_sl~load_bits(actual_info_sl.slice_bits());
-    throw_if(112, addresses.tuple_index(0).slice_hash() != actual_address.slice_hash());
+    stake2info.check_stake2info(addresses.tuple_index(0), 15, 65536);
 }
 
 _ __test_participate2() {
@@ -44,28 +52,10 @@ _ __test_participate2() {
     cell stake2info = storage_sl~load_ref();
 
     ;; address 0
-    (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addresses.tuple_index(0).slice_hash());
-    throw_unless(100, success);
-    int actual_stake = actual_stake_sl~load_uint(16);
-    throw_if(101, actual_stake != 15);
-
-    (slice actual_info_sl, int success) = stake2info.udict_get?(KEY_LEN, stake_and_hash(15, addresses.tuple_index(0).slice_hash()));
-    throw_unless(110, success);
-    int actual_max_factor = actual_info_sl~load_uint(24);
-    throw_if(111, actual_max_factor != 65536);
-    slice actual_address = actual_info_sl~load_bits(actual_info_sl.slice_bits());
-    throw_if(112, addresses.tuple_index(0).slice_hash() != actual_address.slice_hash());
+    addr2stake.check_addr2stake(addresses.tuple_index(0), 15);
+    stake2info.check_stake2info(addresses.tuple_index(0), 15, 65536);
 
     ;; address 1
-    (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addresses.tuple_index(1).slice_hash());
-    throw_unless(100, success);
-    int actual_stake = actual_stake_sl~load_uint(16);
-    throw_if(101, actual_stake != 5);
-
-    (slice actual_info_sl, int success) = stake2info.udict_get?(KEY_LEN, stake_and_hash(5, addresses.tuple_index(1).slice_hash()));
-    throw_unless(110, success);
-    int actual_max_factor = actual_info_sl~load_uint(24);
-    throw_if(111, actual_max_factor != 655360);
-    slice actual_address = actual_info_sl~load_bits(actual_info_sl.slice_bits());
-    throw_if(112, addresses.tuple_index(1).slice_hash() != actual_address.slice_hash());
+    addr2stake.check_addr2stake(addresses.tuple_index(1), 5);
+    stake2info.check_stake2info(addresses.tuple_index(1), 5, 655360);
 }
