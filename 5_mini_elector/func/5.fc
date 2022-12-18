@@ -38,6 +38,11 @@
 -}
 
 const int KEY_LEN = 256;
+const int STAKE_KEY_LEN = 16;
+const int MAX_FACTOR_KEY_LEN = 24;
+const int STAKE_KEY_SUFFIX = KEY_LEN - STAKE_KEY_LEN;   ;; 240
+const int MIN_MAX_FACTOR = 65536;
+const int MAX_MAX_FACTOR = 655360;
 
 ;; =============== extract_address =============================
 
@@ -51,45 +56,51 @@ const int KEY_LEN = 256;
 ;; =============== participate =============================
 
 (slice) stake_to_slice(int stake) inline {
-    return begin_cell().store_uint(stake, 16).end_cell().begin_parse();
+    return begin_cell().store_uint(stake, STAKE_KEY_LEN).end_cell().begin_parse();
 }
 
-(slice) info_to_slice(int max_factor, slice address) {
-    return begin_cell().store_uint(max_factor, 24).store_slice(address).end_cell().begin_parse();
+(slice) info_to_slice(int max_factor, slice address) inline {
+    return begin_cell().store_uint(max_factor, MAX_FACTOR_KEY_LEN).store_slice(address).end_cell().begin_parse();
 }
 
 (int) stake_and_hash(int stake, int hash) inline {
-    stake <<= 240;
-    hash >>= 16;
+    stake <<= STAKE_KEY_SUFFIX;
+    hash >>= STAKE_KEY_LEN;
     return stake + hash;
 }
 
-() participate(slice address, int stake, int max_factor) impure {
-    {-
-      addr2stake: hash(address) -> stake
-      stake2info: stake + hash(address)[:240] -> address, max_factor
-    -}
-    if (max_factor < 65536) {
-        max_factor = 65536;
-    } else {
-        if (max_factor > 655360) {
-            max_factor = 655360;
-        }
-    }
+(cell, cell, int) get_participants() inline {
     slice storage_sl = get_data().begin_parse();
-    (cell addr2stake, cell stake2info, int participants) = (null(), null(), 1);
+    (cell addr2stake, cell stake2info, int participants) = (null(), null(), 0);
     ifnot (storage_sl.slice_empty?()) {
         (addr2stake, stake2info) = (storage_sl~load_ref(), storage_sl~load_ref());
         participants += storage_sl~load_uint(8);
     }
+    return (addr2stake, stake2info, participants);
+}
+
+() participate(slice address, int stake, int max_factor) impure inline {
+    {-
+      addr2stake: hash(address) -> stake
+      stake2info: stake + hash(address)[:240] -> address, max_factor
+    -}
+    if (max_factor < MIN_MAX_FACTOR) {
+        max_factor = MIN_MAX_FACTOR;
+    } else {
+        if (max_factor > MAX_MAX_FACTOR) {
+            max_factor = MAX_MAX_FACTOR;
+        }
+    }
+    (cell addr2stake, cell stake2info, int participants) = get_participants();
     ;; store addr2stake
     int addr_hash = address.slice_hash();
     (slice old_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addr_hash);
     if (success) {
-        int old_stake = old_stake_sl~load_uint(16);
+        int old_stake = old_stake_sl~load_uint(STAKE_KEY_LEN);
         stake += old_stake;
         stake2info~udict_delete?(KEY_LEN, stake_and_hash(old_stake, addr_hash));
-        participants -= 1;
+    } else {
+        participants += 1;
     }
     addr2stake~udict_set(KEY_LEN, addr_hash, stake_to_slice(stake));
     ;; store stake2info
@@ -99,11 +110,68 @@ const int KEY_LEN = 256;
 
 ;; =============== try_elect =============================
 
-() try_elect(int query_id) impure {
+(int, int, int) try_elect() impure inline {
     {-
       cell-list of winners, cell-list of unused. 3 items per cell.
     -}
+    (_, cell stake2info, int participants) = get_participants();
+    throw_if(90, participants < 5);
 
+    tuple last_stakes = null();
+    int last_winners = 0;
+    int all_stakes = 0;
+    tuple max_stakes = null();
+    int max_effective_stakes = 0;
+    int max_winners = 0;
+;;     while (~ stake2info.dict_empty?()) {    ;; todo optimization: check that repeat is cheaper
+    repeat (participants) {
+        (int index, slice info, int success) = stake2info~udict::delete_get_max(STAKE_KEY_LEN);
+        int max_factor = info~load_uint(MAX_FACTOR_KEY_LEN);
+        int min_stake = index >> STAKE_KEY_SUFFIX;
+        all_stakes += min_stake;
+
+        tuple new_stakes = cons([min_stake, max_factor, info], null());
+        int new_effective_stakes = min_stake;
+        ;; go through all_stakes and update effective stakes
+        while (~ last_stakes.null?()) {
+            [int effective_stake, max_factor, info] = last_stakes~list_next();
+            int max_effective_stake = (max_factor * min_stake) / MIN_MAX_FACTOR;
+            effective_stake = min(effective_stake, max_effective_stake);    ;; todo? optimization: use if
+            new_stakes = cons([effective_stake, max_factor, info], new_stakes);
+            new_effective_stakes += effective_stake;
+        }
+
+        last_winners += 1;
+        if ((new_effective_stakes > max_effective_stakes) & (last_winners >= 5)) {  ;; todo? maybe >=
+            max_stakes = new_stakes;
+            max_effective_stakes = new_effective_stakes;
+            max_winners = last_winners;
+        }
+        last_stakes = new_stakes;
+    }
+
+    ;; todo: store max_winners and losers
+    return (max_winners, max_effective_stakes, all_stakes - max_effective_stakes);
+}
+
+;; =============== send_message =============================
+
+() send_message(slice address, int coins, int query_id,
+        int total_winners, int total_effective_stake, int unused_stake) impure inline {
+    cell output_message = begin_cell()
+            .store_uint(0x18, 6)
+            .store_slice(address)
+            .store_coins(coins)
+            .store_uint(0, 107)
+            ;; message body
+            .store_uint(0xeefa5ea4, 32)
+            .store_uint(query_id, 64)
+            .store_uint(total_winners, 32)
+            .store_uint(total_effective_stake, STAKE_KEY_LEN)
+            .store_uint(unused_stake, STAKE_KEY_LEN)
+            .end_cell();
+
+    send_raw_message(output_message, 64);
 }
 
 ;; =============== recv_internal =============================
@@ -114,10 +182,12 @@ const int KEY_LEN = 256;
     if (op == 0x5ce28eea) {
         ;; throw query_id
         in_msg_body~load_uint(64);
-        participate(extract_address(full_message), msg_value, in_msg_body~load_uint(24));
+        participate(extract_address(full_message), msg_value, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
     }
     if (op == 0x207fa5f5) {
-        ;; todo
+        int query_id = in_msg_body~load_uint(64);
+        (int total_winners, int total_effective_stake, int unused_stake) = try_elect();
+        send_message(extract_address(full_message), msg_value, query_id, total_winners, total_effective_stake, unused_stake);
     }
 }
 
