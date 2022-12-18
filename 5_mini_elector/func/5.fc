@@ -110,10 +110,47 @@ const int MAX_MAX_FACTOR = 655360;
 
 ;; =============== try_elect =============================
 
-(int, int, int) try_elect() impure inline {
+() store_winners_losers(tuple max_stakes, tuple unused_stakes) impure inline {
     {-
       cell-list of winners, cell-list of unused. 3 items per cell.
     -}
+    builder winners = begin_cell();
+    int cur_winners = 0;
+    builder losers = begin_cell();
+    int cur_losers = 0;
+    ;; todo optimization: replace with `repeat`
+    while (~ unused_stakes.null?()) {
+        [int stake, slice address] = unused_stakes~list_next();
+        if (cur_losers == 3) {
+            cur_losers = 0;
+            losers = begin_cell().store_ref(losers.end_cell());
+        }
+        losers = losers.store_uint(stake, STAKE_KEY_LEN).store_slice(address);
+        cur_losers += 1;
+    }
+    while (~ max_stakes.null?()) {
+        [int stake, int effective_stake, int max_factor, slice address] = max_stakes~list_next();
+        if (stake > effective_stake) {
+            if (cur_losers == 3) {
+                cur_losers = 0;
+                losers = begin_cell().store_ref(losers.end_cell());
+            }
+            losers = losers.store_uint(stake - effective_stake, STAKE_KEY_LEN).store_slice(address);
+            cur_losers += 1;
+        }
+
+        if (cur_winners == 3) {
+            cur_winners = 0;
+            winners = begin_cell().store_ref(winners.end_cell());
+        }
+        winners = winners.store_uint(effective_stake, STAKE_KEY_LEN).store_slice(address);
+        cur_winners += 1;
+    }
+
+    begin_cell().store_ref(winners.end_cell()).store_ref(losers.end_cell()).end_cell().set_data();
+}
+
+(int, int, int) try_elect() impure inline {
     (_, cell stake2info, int participants) = get_participants();
     throw_if(90, participants < 5);
 
@@ -121,6 +158,7 @@ const int MAX_MAX_FACTOR = 655360;
     int last_winners = 0;
     int all_stakes = 0;
     tuple max_stakes = null();
+    tuple unused_stakes = null();
     int max_effective_stakes = 0;
     int max_winners = 0;
 ;;     while (~ stake2info.dict_empty?()) {    ;; todo optimization: check that repeat is cheaper
@@ -130,27 +168,30 @@ const int MAX_MAX_FACTOR = 655360;
         int min_stake = index >> STAKE_KEY_SUFFIX;
         all_stakes += min_stake;
 
-        tuple new_stakes = cons([min_stake, max_factor, info], null());
+        tuple new_stakes = cons([min_stake, min_stake, max_factor, info], null());
+        unused_stakes = cons([min_stake, info], unused_stakes);
         int new_effective_stakes = min_stake;
         ;; go through all_stakes and update effective stakes
+        ;; todo optimization: replace with `repeat`
         while (~ last_stakes.null?()) {
-            [int effective_stake, max_factor, info] = last_stakes~list_next();
+            [int stake, int effective_stake, max_factor, info] = last_stakes~list_next();
             int max_effective_stake = (max_factor * min_stake) / MIN_MAX_FACTOR;
             effective_stake = min(effective_stake, max_effective_stake);    ;; todo? optimization: use if
-            new_stakes = cons([effective_stake, max_factor, info], new_stakes);
+            new_stakes = cons([stake, effective_stake, max_factor, info], new_stakes);
             new_effective_stakes += effective_stake;
         }
 
         last_winners += 1;
         if ((new_effective_stakes > max_effective_stakes) & (last_winners >= 5)) {  ;; todo? maybe >=
             max_stakes = new_stakes;
+            unused_stakes = null();
             max_effective_stakes = new_effective_stakes;
             max_winners = last_winners;
         }
         last_stakes = new_stakes;
     }
 
-    ;; todo: store max_winners and losers
+    store_winners_losers(max_stakes, unused_stakes);
     return (max_winners, max_effective_stakes, all_stakes - max_effective_stakes);
 }
 
