@@ -82,9 +82,9 @@ _ __test_try_elect() {
 
 _ __test_try_elect2() {
     tuple addresses = util_addresses();
-    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 100500, 0]);
-    var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 100100, 0]);
-    var (_, _) = invoke_method(participate, [addresses.tuple_index(2), 900, 0]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 10100, 0]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 9090, 0]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(2), 1010, 0]);
     var (_, _) = invoke_method(participate, [addresses.tuple_index(3), 500, 0]);
     var (_, _) = invoke_method(participate, [addresses.tuple_index(4), 2, 0]);
 
@@ -92,5 +92,5 @@ _ __test_try_elect2() {
     [int total_winners, int total_effective_stake, int unused_stake] = stack;
     throw_if(100, total_winners != 5);
     throw_if(101, total_effective_stake != 10);
-    throw_if(102, unused_stake != 201992);
+    throw_if(102, unused_stake != 20692);
 }
