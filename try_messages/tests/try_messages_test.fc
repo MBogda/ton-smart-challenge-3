@@ -38,3 +38,16 @@ _ __test_impure() {
     int x = sl~load_uint(1);
     throw_if(100, x != 0);
 }
+
+_ __test_dicts() {
+    cell dict = null();
+    ~dump(0);
+    dict~udict_set(256, 1, begin_cell().store_uint(1, 256).store_uint(2, 256).store_uint(3, 244).end_cell().begin_parse());
+    ~dump(1);
+    dict~udict_set(256, 2, begin_cell().store_uint(1, 256).store_uint(2, 256).store_uint(3, 244).end_cell().begin_parse());
+    ~dump(2);
+    dict~udict_set(256, 3, begin_cell().store_uint(1, 256).store_uint(2, 256).store_uint(3, 244).end_cell().begin_parse());
+    ~dump(3);
+    dict~udict_set(256, 4, begin_cell().store_uint(1, 256).store_uint(2, 256).store_uint(3, 244).end_cell().begin_parse());
+    ~dump(dict);
+}
