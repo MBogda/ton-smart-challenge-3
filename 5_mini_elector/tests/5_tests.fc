@@ -82,6 +82,7 @@ _ __test_participate3() {
 
 _ __test_try_elect() {
     __test_participate2();
+    set_data(get_prev_c4());
     _ = invoke_method_expect_fail(try_elect, []);
 }
 
@@ -118,4 +119,57 @@ _ __test_try_elect3() {
     throw_if(100, total_winners != 7);
     throw_if(101, total_effective_stake != 420);
     throw_if(102, unused_stake != 232);
+}
+
+_ __test_get_stake_table() {
+    tuple addresses = util_addresses();
+    __test_try_elect2();
+    set_data(get_prev_c4());
+
+    var (_, stack) = invoke_method(get_stake_table, []);
+    [tuple winners, tuple losers] = stack;
+    int idx = 0;
+    repeat (5) {
+        [slice address, int stake] = winners.tuple_index(idx);
+        ~dump(1);
+        ~dump(stake);
+
+        int idx2 = 0;
+        int hash = address.slice_hash();
+        int any = false;
+        repeat (5) {
+            int expected_hash = addresses.tuple_index(idx2).slice_hash();
+            if (hash == expected_hash) {
+                any = true;
+                if (idx2 == 0) {
+                    throw_if(100, stake != 2);
+                } else {
+                    if (idx2 == 1) {
+                        throw_if(101, stake != 2);
+                    } else {
+                        if (idx2 == 2) {
+                            throw_if(102, stake != 2);
+                        } else {
+                            if (idx2 == 3) {
+                                throw_if(103, stake != 2);
+                            } else {
+                                if (idx2 == 4) {
+                                    ~dump(14);
+                                    ~dump(stake);
+                                    throw_if(104, stake != 2);
+                                } else {
+                                    throw(105);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            idx2 += 1;
+        }
+        ~dump(address);
+        throw_unless(110, any);
+
+        idx += 1;
+    }
 }
