@@ -236,5 +236,22 @@ const int MAX_MAX_FACTOR = 655360;
 
 ;; testable
 (tuple, tuple) get_stake_table() method_id {
-    return (tpush(empty_tuple(), 0), tpush(empty_tuple(), 0));
+    slice storage_sl = get_data().begin_parse();
+    (slice winners_sl, slice losers_sl) = (storage_sl~load_ref().begin_parse(), storage_sl~load_ref().begin_parse());
+    (tuple winners, tuple losers) = (empty_tuple(), empty_tuple());
+    while (~ winners_sl.slice_empty?()) {
+        if (winners_sl.slice_data_empty?() & ~ winners_sl.slice_refs_empty?()) {
+            winners_sl = winners_sl~load_ref().begin_parse();
+        }
+        (int stake, slice address) = (winners_sl~load_uint(STAKE_KEY_LEN), winners_sl~load_msg_addr());
+        winners = tpush(winners, [address, stake]);
+    }
+    while (~ losers_sl.slice_empty?()) {
+        if (losers_sl.slice_data_empty?() & ~ losers_sl.slice_refs_empty?()) {
+            losers_sl = losers_sl~load_ref().begin_parse();
+        }
+        (int stake, slice address) = (losers_sl~load_uint(STAKE_KEY_LEN), losers_sl~load_msg_addr());
+        losers = tpush(losers, [address, stake]);
+    }
+    return (winners, losers);
 }
