@@ -203,3 +203,111 @@ _ __test_get_stake_table() {
         idx += 1;
     }
 }
+
+_ __test_get_stake_table2() {
+    tuple addresses = util_addresses();
+    __test_try_elect3();
+
+    var (_, stack) = invoke_method(get_stake_table, []);
+    [tuple winners, tuple losers] = stack;
+
+    ;; winners
+    int idx = 0;
+    repeat (7) {
+        [slice address, int stake] = winners.tuple_index(idx);
+        int idx2 = 0;
+        int hash = address.slice_hash();
+        int any = false;
+        repeat (10) {
+            int expected_hash = addresses.tuple_index(idx2).slice_hash();
+            if (hash == expected_hash) {
+                any = true;
+                if (idx2 == 1) {
+                    throw_if(101, stake != 60);
+                } else {
+                    if (idx2 == 2) {
+                        throw_if(102, stake != 60);
+                    } else {
+                        if (idx2 == 4) {
+                            throw_if(104, stake != 60);
+                        } else {
+                            if (idx2 == 5) {
+                                throw_if(105, stake != 60);
+                            } else {
+                                if (idx2 == 6) {
+                                    throw_if(106, stake != 60);
+                                } else {
+                                    if (idx2 == 7) {
+                                        throw_if(107, stake != 60);
+                                    } else {
+                                        if (idx2 == 9) {
+                                            throw_if(109, stake != 60);
+                                        } else {
+                                            throw(110);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            idx2 += 1;
+        }
+        throw_unless(120, any);
+
+        idx += 1;
+    }
+
+    ;; losers
+    int idx = 0;
+    repeat (8) {
+        [slice address, int stake] = losers.tuple_index(idx);
+        int idx2 = 0;
+        int hash = address.slice_hash();
+        int any = false;
+        repeat (10) {
+            int expected_hash = addresses.tuple_index(idx2).slice_hash();
+            if (hash == expected_hash) {
+                any = true;
+                if (idx2 == 0) {
+                    throw_if(200, stake != 25);
+                } else {
+                    if (idx2 == 2) {
+                        throw_if(202, stake != 35);
+                    } else {
+                        if (idx2 == 3) {
+                            throw_if(203, stake != 47);
+                        } else {
+                            if (idx2 == 4) {
+                                throw_if(204, stake != 40);
+                            } else {
+                                if (idx2 == 5) {
+                                    throw_if(205, stake != 14);
+                                } else {
+                                    if (idx2 == 6) {
+                                        throw_if(206, stake != 23);
+                                    } else {
+                                        if (idx2 == 7) {
+                                            throw_if(207, stake != 35);
+                                        } else {
+                                            if (idx2 == 8) {
+                                                throw_if(208, stake != 13);
+                                            } else {
+                                                throw(210);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            idx2 += 1;
+        }
+        throw_unless(220, any);
+
+        idx += 1;
+    }
+}
