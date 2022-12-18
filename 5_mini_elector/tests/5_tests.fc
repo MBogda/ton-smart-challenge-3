@@ -9,6 +9,11 @@ forall X -> X tuple_index(tuple t, int index) asm "INDEXVAR";
     result = result.tpush("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF"a);
     result = result.tpush("Ef9ERERERERERERERERERERERERERERERERERERERERERJUo"a);
     result = result.tpush("Ef9VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVbxn"a);
+    result = result.tpush("Ef8REREREREREREREREREREREREREREREREREREREREREik4"a);
+    result = result.tpush("Ef8iIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIVLp"a);
+    result = result.tpush("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMWuH"a);
+    result = result.tpush("Ef9EREREREREREREREREREREREREREREREREREREREREQcWN"a);
+    result = result.tpush("Ef9VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUfzj"a);
 
     return result;
 }
@@ -93,4 +98,24 @@ _ __test_try_elect2() {
     throw_if(100, total_winners != 5);
     throw_if(101, total_effective_stake != 10);
     throw_if(102, unused_stake != 20692);
+}
+
+_ __test_try_elect3() {
+    tuple addresses = util_addresses();
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 25, 0]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 60, 0]);     ;; win 60
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(2), 95, 0]);     ;; win 60
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(3), 47, 0]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(4), 100, 0]);    ;; win 60
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(5), 74, 0]);     ;; win 60
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(6), 83, 0]);     ;; win 60
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(7), 95, 0]);     ;; win 60
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(8), 13, 0]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(9), 60, 0]);     ;; win 60
+
+    var (_, stack) = invoke_method(try_elect, []);
+    [int total_winners, int total_effective_stake, int unused_stake] = stack;
+    throw_if(100, total_winners != 7);
+    throw_if(101, total_effective_stake != 420);
+    throw_if(102, unused_stake != 232);
 }
