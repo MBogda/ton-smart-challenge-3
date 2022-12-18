@@ -13,6 +13,13 @@ forall X -> X tuple_index(tuple t, int index) asm "INDEXVAR";
     return result;
 }
 
+(cell, cell) get_participate_dicts() {
+    slice storage_sl = get_data().begin_parse();
+    cell addr2stake = storage_sl~load_ref();
+    cell stake2info = storage_sl~load_ref();
+    return (addr2stake, stake2info);
+}
+
 _ check_addr2stake(cell addr2stake, slice address, int stake) impure {
     (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, address.slice_hash());
     throw_unless(100, success);
@@ -32,13 +39,8 @@ _ check_stake2info(cell stake2info, slice address, int stake, int max_factor) im
 _ __test_participate() {
     tuple addresses = util_addresses();
     var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 15, 0]);
-
-    slice storage_sl = get_data().begin_parse();
-    cell addr2stake = storage_sl~load_ref();
-    cell stake2info = storage_sl~load_ref();
-
+    (cell addr2stake, cell stake2info) = get_participate_dicts();
     addr2stake.check_addr2stake(addresses.tuple_index(0), 15);
-
     stake2info.check_stake2info(addresses.tuple_index(0), 15, 65536);
 }
 
@@ -46,10 +48,7 @@ _ __test_participate2() {
     tuple addresses = util_addresses();
     var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 15, 0]);
     var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 5, 655360000]);
-
-    slice storage_sl = get_data().begin_parse();
-    cell addr2stake = storage_sl~load_ref();
-    cell stake2info = storage_sl~load_ref();
+    (cell addr2stake, cell stake2info) = get_participate_dicts();
 
     ;; address 0
     addr2stake.check_addr2stake(addresses.tuple_index(0), 15);
@@ -58,4 +57,19 @@ _ __test_participate2() {
     ;; address 1
     addr2stake.check_addr2stake(addresses.tuple_index(1), 5);
     stake2info.check_stake2info(addresses.tuple_index(1), 5, 655360);
+}
+
+_ __test_participate3() {
+    tuple addresses = util_addresses();
+    ;; first invoke
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 15, 65536]);
+    (cell addr2stake, cell stake2info) = get_participate_dicts();
+    addr2stake.check_addr2stake(addresses.tuple_index(0), 15);
+    stake2info.check_stake2info(addresses.tuple_index(0), 15, 65536);
+
+    ;; second invoke
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 5, 66000]);
+    (cell addr2stake, cell stake2info) = get_participate_dicts();
+    addr2stake.check_addr2stake(addresses.tuple_index(0), 20);
+    stake2info.check_stake2info(addresses.tuple_index(0), 20, 66000);
 }
