@@ -50,7 +50,7 @@ _ __test_participate() {
     stake2info.check_stake2info(addresses.tuple_index(0), 15, 65536);
 }
 
-_ __test_participate2() {
+_ __test_participate2() impure {
     tuple addresses = util_addresses();
     var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 15, 0]);
     var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 5, 655360000]);
@@ -82,11 +82,10 @@ _ __test_participate3() {
 
 _ __test_try_elect() {
     __test_participate2();
-    set_data(get_prev_c4());
     _ = invoke_method_expect_fail(try_elect, []);
 }
 
-_ __test_try_elect2() {
+_ __test_try_elect2() impure {
     tuple addresses = util_addresses();
     var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 10100, 0]);
     var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 9090, 0]);
@@ -101,7 +100,7 @@ _ __test_try_elect2() {
     throw_if(102, unused_stake != 20692);
 }
 
-_ __test_try_elect3() {
+_ __test_try_elect3() impure {
     tuple addresses = util_addresses();
     var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 25, 0]);
     var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 60, 0]);     ;; win 60
@@ -124,7 +123,6 @@ _ __test_try_elect3() {
 _ __test_get_stake_table() {
     tuple addresses = util_addresses();
     __test_try_elect2();
-    set_data(get_prev_c4());
 
     var (_, stack) = invoke_method(get_stake_table, []);
     [tuple winners, tuple losers] = stack;
@@ -154,8 +152,6 @@ _ __test_get_stake_table() {
                                 throw_if(103, stake != 2);
                             } else {
                                 if (idx2 == 4) {
-                                    ~dump(14);
-                                    ~dump(stake);
                                     throw_if(104, stake != 2);
                                 } else {
                                     throw(105);
@@ -167,7 +163,6 @@ _ __test_get_stake_table() {
             }
             idx2 += 1;
         }
-        ~dump(address);
         throw_unless(110, any);
 
         idx += 1;
