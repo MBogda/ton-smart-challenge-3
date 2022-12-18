@@ -39,12 +39,16 @@
 
 const int KEY_LEN = 256;
 
+;; =============== extract_address =============================
+
 (slice) extract_address(cell full_message) inline {
     slice address = full_message.begin_parse();
     address~load_uint(4);
     (_, address) = address.load_msg_addr();
     return address;
 }
+
+;; =============== participate =============================
 
 (slice) stake_to_slice(int stake) inline {
     return begin_cell().store_uint(stake, 16).end_cell().begin_parse();
@@ -73,9 +77,10 @@ const int KEY_LEN = 256;
         }
     }
     slice storage_sl = get_data().begin_parse();
-    (cell addr2stake, cell stake2info) = (null(), null());
-    if (~ storage_sl.slice_empty?()) {
+    (cell addr2stake, cell stake2info, int participants) = (null(), null(), 1);
+    ifnot (storage_sl.slice_empty?()) {
         (addr2stake, stake2info) = (storage_sl~load_ref(), storage_sl~load_ref());
+        participants += storage_sl~load_uint(8);
     }
     ;; store addr2stake
     int addr_hash = address.slice_hash();
@@ -84,18 +89,24 @@ const int KEY_LEN = 256;
         int old_stake = old_stake_sl~load_uint(16);
         stake += old_stake;
         stake2info~udict_delete?(KEY_LEN, stake_and_hash(old_stake, addr_hash));
+        participants -= 1;
     }
     addr2stake~udict_set(KEY_LEN, addr_hash, stake_to_slice(stake));
     ;; store stake2info
     stake2info~udict_set(KEY_LEN, stake_and_hash(stake, addr_hash), info_to_slice(max_factor, address));
-    begin_cell().store_ref(addr2stake).store_ref(stake2info).end_cell().set_data();
+    begin_cell().store_ref(addr2stake).store_ref(stake2info).store_uint(participants, 8).end_cell().set_data();
 }
+
+;; =============== try_elect =============================
 
 () try_elect(int query_id) impure {
     {-
       cell-list of winners, cell-list of unused. 3 items per cell.
     -}
+
 }
+
+;; =============== recv_internal =============================
 
 ;; testable
 () recv_internal(int msg_value, cell full_message, slice in_msg_body) {
@@ -109,6 +120,8 @@ const int KEY_LEN = 256;
         ;; todo
     }
 }
+
+;; =============== get_stake_table =============================
 
 ;; testable
 (tuple, tuple) get_stake_table() method_id {
