@@ -163,7 +163,7 @@ const int MAX_MAX_FACTOR = 655360;
     int max_winners = 0;
 ;;     while (~ stake2info.dict_empty?()) {    ;; todo optimization: check that repeat is cheaper
     repeat (participants) {
-        (int index, slice info, int success) = stake2info~udict::delete_get_max(STAKE_KEY_LEN);
+        (int index, slice info, int success) = stake2info~udict::delete_get_max(KEY_LEN);
         int max_factor = info~load_uint(MAX_FACTOR_KEY_LEN);
         int min_stake = index >> STAKE_KEY_SUFFIX;
         all_stakes += min_stake;
