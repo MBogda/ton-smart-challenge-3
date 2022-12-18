@@ -219,40 +219,39 @@ const int MAX_MAX_FACTOR = 655360;
 
 ;; testable
 () recv_internal(int msg_value, cell full_message, slice in_msg_body) {
-;;     int op = in_msg_body~load_uint(32);
-;;     if (op == 0x5ce28eea) {
-;;         ;; throw query_id
-;;         in_msg_body~load_uint(64);
-;;         participate(extract_address(full_message), msg_value, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
-;;     }
-;;     if (op == 0x207fa5f5) {
-;;         int query_id = in_msg_body~load_uint(64);
-;;         (int total_winners, int total_effective_stake, int unused_stake) = try_elect();
-;;         send_message(extract_address(full_message), msg_value, query_id, total_winners, total_effective_stake, unused_stake);
-;;     }
+    int op = in_msg_body~load_uint(32);
+    if (op == 0x5ce28eea) {
+        ;; throw query_id
+        in_msg_body~load_uint(64);
+        participate(extract_address(full_message), msg_value, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
+    }
+    if (op == 0x207fa5f5) {
+        int query_id = in_msg_body~load_uint(64);
+        (int total_winners, int total_effective_stake, int unused_stake) = try_elect();
+        send_message(extract_address(full_message), msg_value, query_id, total_winners, total_effective_stake, unused_stake);
+    }
 }
 
 ;; =============== get_stake_table =============================
 
 ;; testable
 (tuple, tuple) get_stake_table() method_id {
-    return (tpush(empty_tuple(), 0), tpush(empty_tuple(), 0));
-;;     slice storage_sl = get_data().begin_parse();
-;;     (slice winners_sl, slice losers_sl) = (storage_sl~load_ref().begin_parse(), storage_sl~load_ref().begin_parse());
-;;     (tuple winners, tuple losers) = (empty_tuple(), empty_tuple());
-;;     while (~ winners_sl.slice_empty?()) {
-;;         if (winners_sl.slice_data_empty?() & ~ winners_sl.slice_refs_empty?()) {
-;;             winners_sl = winners_sl~load_ref().begin_parse();
-;;         }
-;;         (int stake, slice address) = (winners_sl~load_uint(STAKE_KEY_LEN), winners_sl~load_msg_addr());
-;;         winners = tpush(winners, [address, stake]);
-;;     }
-;;     while (~ losers_sl.slice_empty?()) {
-;;         if (losers_sl.slice_data_empty?() & ~ losers_sl.slice_refs_empty?()) {
-;;             losers_sl = losers_sl~load_ref().begin_parse();
-;;         }
-;;         (int stake, slice address) = (losers_sl~load_uint(STAKE_KEY_LEN), losers_sl~load_msg_addr());
-;;         losers = tpush(losers, [address, stake]);
-;;     }
-;;     return (winners, losers);
+    slice storage_sl = get_data().begin_parse();
+    (slice winners_sl, slice losers_sl) = (storage_sl~load_ref().begin_parse(), storage_sl~load_ref().begin_parse());
+    (tuple winners, tuple losers) = (empty_tuple(), empty_tuple());
+    while (~ winners_sl.slice_empty?()) {
+        if (winners_sl.slice_data_empty?() & ~ winners_sl.slice_refs_empty?()) {
+            winners_sl = winners_sl~load_ref().begin_parse();
+        }
+        (int stake, slice address) = (winners_sl~load_uint(STAKE_KEY_LEN), winners_sl~load_msg_addr());
+        winners = tpush(winners, [address, stake]);
+    }
+    while (~ losers_sl.slice_empty?()) {
+        if (losers_sl.slice_data_empty?() & ~ losers_sl.slice_refs_empty?()) {
+            losers_sl = losers_sl~load_ref().begin_parse();
+        }
+        (int stake, slice address) = (losers_sl~load_uint(STAKE_KEY_LEN), losers_sl~load_msg_addr());
+        losers = tpush(losers, [address, stake]);
+    }
+    return (winners, losers);
 }
