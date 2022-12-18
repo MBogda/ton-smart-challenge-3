@@ -126,12 +126,11 @@ _ __test_get_stake_table() {
 
     var (_, stack) = invoke_method(get_stake_table, []);
     [tuple winners, tuple losers] = stack;
+
+    ;; winners
     int idx = 0;
     repeat (5) {
         [slice address, int stake] = winners.tuple_index(idx);
-        ~dump(1);
-        ~dump(stake);
-
         int idx2 = 0;
         int hash = address.slice_hash();
         int any = false;
@@ -164,6 +163,42 @@ _ __test_get_stake_table() {
             idx2 += 1;
         }
         throw_unless(110, any);
+
+        idx += 1;
+    }
+
+    ;; losers
+    int idx = 0;
+    repeat (4) {
+        [slice address, int stake] = losers.tuple_index(idx);
+        int idx2 = 0;
+        int hash = address.slice_hash();
+        int any = false;
+        repeat (4) {
+            int expected_hash = addresses.tuple_index(idx2).slice_hash();
+            if (hash == expected_hash) {
+                any = true;
+                if (idx2 == 0) {
+                    throw_if(200, stake != 10098);
+                } else {
+                    if (idx2 == 1) {
+                        throw_if(201, stake != 9088);
+                    } else {
+                        if (idx2 == 2) {
+                            throw_if(202, stake != 1008);
+                        } else {
+                            if (idx2 == 3) {
+                                throw_if(203, stake != 498);
+                            } else {
+                                throw(205);
+                            }
+                        }
+                    }
+                }
+            }
+            idx2 += 1;
+        }
+        throw_unless(210, any);
 
         idx += 1;
     }
