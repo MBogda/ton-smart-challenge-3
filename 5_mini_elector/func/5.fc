@@ -65,6 +65,13 @@ const int KEY_LEN = 256;
       addr2stake: hash(address) -> stake
       stake2info: stake + hash(address)[:240] -> address, max_factor
     -}
+    if (max_factor < 65536) {
+        max_factor = 65536;
+    } else {
+        if (max_factor > 655360) {
+            max_factor = 655360;
+        }
+    }
     cell storage = get_data();
     (cell addr2stake, cell stake2info) = (null(), null());
     if (~ storage.cell_null?()) {

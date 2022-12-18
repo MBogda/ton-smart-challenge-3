@@ -1,6 +1,27 @@
-_ __test_impure() {
-    slice sl = begin_cell().store_uint(2, 2).end_cell().begin_parse();
-    sl~load_uint(1);
-    int x = sl~load_uint(1);
-    throw_if(100, x != 0);
+const int KEY_LEN = 256;
+
+forall X -> X tuple_index(tuple t, int index) asm "INDEXVAR";
+
+_ util_addresses() {
+    tuple result = null();
+    result = result.tpush("Ef8RERERERERERERERERERERERERERERERERERERERERERlb"a);
+    result = result.tpush("Ef8iIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiImKK"a);
+    result = result.tpush("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF"a);
+    result = result.tpush("Ef9ERERERERERERERERERERERERERERERERERERERERERJUo"a);
+    result = result.tpush("Ef9VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVbxn"a);
+
+    return result;
+}
+
+_ __test_participate() {
+    tuple addresses = util_addresses();
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 15, 0]);
+
+    slice storage_sl = get_data().begin_parse();
+    cell addr2stake = storage_sl~load_ref();
+    cell stake2info = storage_sl~load_ref();
+    (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addresses.tuple_index(0).slice_hash());
+    throw_if(100, ~ success);
+    int actual_stake = actual_stake_sl~load_uint(16);
+    throw_if(101, actual_stake != 15);
 }
