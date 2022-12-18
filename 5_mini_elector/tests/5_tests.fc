@@ -2,8 +2,8 @@ const int KEY_LEN = 256;
 
 forall X -> X tuple_index(tuple t, int index) asm "INDEXVAR";
 
-_ util_addresses() {
-    tuple result = null();
+(tuple) util_addresses() {
+    tuple result = empty_tuple();
     result = result.tpush("Ef8RERERERERERERERERERERERERERERERERERERERERERlb"a);
     result = result.tpush("Ef8iIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiImKK"a);
     result = result.tpush("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF"a);

@@ -49,7 +49,7 @@
 
 (slice, int) read_current_number() inline {
     slice storage_sl = get_data().begin_parse();
-    if (storage_sl.slice_empty?()) {    ;; todo optimization: cell_empty (no need to parse empty cell)
+    if (storage_sl.slice_empty?()) {
         return (storage_sl, 0);
     }
     return storage_sl.load_uint(4);

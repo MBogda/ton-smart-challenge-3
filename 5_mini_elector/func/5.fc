@@ -72,10 +72,9 @@ const int KEY_LEN = 256;
             max_factor = 655360;
         }
     }
-    cell storage = get_data();
+    slice storage_sl = get_data().begin_parse();
     (cell addr2stake, cell stake2info) = (null(), null());
-    if (~ storage.cell_null?()) {
-        slice storage_sl = storage.begin_parse();
+    if (~ storage_sl.slice_empty?()) {
         (addr2stake, stake2info) = (storage_sl~load_ref(), storage_sl~load_ref());
     }
     ;; store addr2stake
@@ -113,5 +112,5 @@ const int KEY_LEN = 256;
 
 ;; testable
 (tuple, tuple) get_stake_table() method_id {
-    return (tpush(null(), 0), tpush(null(), 0));
+    return (tpush(empty_tuple(), 0), tpush(empty_tuple(), 0));
 }
