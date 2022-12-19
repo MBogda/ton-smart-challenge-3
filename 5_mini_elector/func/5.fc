@@ -208,8 +208,8 @@ const int MAX_MAX_FACTOR = 655360;
             .store_uint(0xeefa5ea4, 32)
             .store_uint(query_id, 64)
             .store_uint(total_winners, 32)
-            .store_uint(total_effective_stake, STAKE_KEY_LEN)
-            .store_uint(unused_stake, STAKE_KEY_LEN)
+            .store_coins(total_effective_stake)
+            .store_coins(unused_stake)
             .end_cell();
 
     send_raw_message(output_message, 64);
