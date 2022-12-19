@@ -29,7 +29,7 @@ forall X -> X tuple_index(tuple t, int index) asm "INDEXVAR";
 _ check_addr2stake(cell addr2stake, slice address, int stake) impure {
     (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, address.slice_hash());
     throw_unless(100, success);
-    int actual_stake = actual_stake_sl~load_uint(16);
+    int actual_stake = actual_stake_sl~load_uint(18);
     throw_if(101, actual_stake != stake);
 }
 

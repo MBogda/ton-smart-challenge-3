@@ -38,19 +38,21 @@
 -}
 
 const int KEY_LEN = 256;
-const int STAKE_KEY_LEN = 16;
+const int STAKE_KEY_LEN = 18;
 const int MAX_FACTOR_KEY_LEN = 24;
-const int STAKE_KEY_SUFFIX = KEY_LEN - STAKE_KEY_LEN;   ;; 240
+const int STAKE_KEY_SUFFIX = KEY_LEN - STAKE_KEY_LEN;   ;; 238
 const int MIN_MAX_FACTOR = 65536;
 const int MAX_MAX_FACTOR = 655360;
 
 ;; =============== extract_address =============================
 
-(slice) extract_address(cell full_message) inline {
-    slice address = full_message.begin_parse();
-    address~load_uint(4);
-    (_, address) = address.load_msg_addr();
-    return address;
+(slice, int) extract_address_and_tons(cell full_message) inline {
+    slice message_sl = full_message.begin_parse();
+    message_sl~load_uint(4);
+    slice address = message_sl~load_msg_addr();
+    _ = message_sl~load_msg_addr();     ;; destination address
+    int tons = message_sl~load_coins();
+    return (address, tons);
 }
 
 ;; =============== participate =============================
@@ -223,12 +225,14 @@ const int MAX_MAX_FACTOR = 655360;
     if (op == 0x5ce28eea) {
         ;; throw query_id
         in_msg_body~load_uint(64);
-        participate(extract_address(full_message), msg_value / 1000000000, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
+        (slice address, int tons) = extract_address_and_tons(full_message);
+        participate(address, tons, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
     }
     if (op == 0x207fa5f5) {
         int query_id = in_msg_body~load_uint(64);
+        (slice address, int tons) = extract_address_and_tons(full_message);
         (int total_winners, int total_effective_stake, int unused_stake) = try_elect();
-        send_message(extract_address(full_message), msg_value / 1000000000, query_id, total_winners, total_effective_stake, unused_stake);
+        send_message(address, tons, query_id, total_winners, total_effective_stake, unused_stake);
     }
 }
 
