@@ -43,16 +43,15 @@ const int MAX_FACTOR_KEY_LEN = 24;
 const int STAKE_KEY_SUFFIX = KEY_LEN - STAKE_KEY_LEN;   ;; 136
 const int MIN_MAX_FACTOR = 65536;
 const int MAX_MAX_FACTOR = 655360;
+const int PARTICIPANTS_IN_CELL = 2;
 
 ;; =============== extract_address =============================
 
-(slice, int) extract_address_and_tons(cell full_message) inline {
-    slice message_sl = full_message.begin_parse();
-    message_sl~load_uint(4);
-    slice address = message_sl~load_msg_addr();
-    _ = message_sl~load_msg_addr();     ;; destination address
-    int tons = message_sl~load_coins();
-    return (address, tons);
+(slice) extract_address(cell full_message) inline {
+    slice address = full_message.begin_parse();
+    address~load_uint(4);
+    (_, address) = address.load_msg_addr();
+    return address;
 }
 
 ;; =============== participate =============================
@@ -114,7 +113,7 @@ const int MAX_MAX_FACTOR = 655360;
 
 () store_winners_losers(tuple max_stakes, tuple unused_stakes) impure inline {
     {-
-      cell-list of winners, cell-list of unused. 3 items per cell.
+      cell-list of winners, cell-list of unused. 2 items per cell.
     -}
     builder winners = begin_cell();
     int cur_winners = 0;
@@ -123,7 +122,7 @@ const int MAX_MAX_FACTOR = 655360;
     ;; todo optimization: replace with `repeat`
     while (~ unused_stakes.null?()) {
         [int stake, slice address] = unused_stakes~list_next();
-        if (cur_losers == 3) {
+        if (cur_losers == PARTICIPANTS_IN_CELL) {
             cur_losers = 0;
             losers = begin_cell().store_ref(losers.end_cell());
         }
@@ -133,7 +132,7 @@ const int MAX_MAX_FACTOR = 655360;
     while (~ max_stakes.null?()) {
         [int stake, int effective_stake, int max_factor, slice address] = max_stakes~list_next();
         if (stake > effective_stake) {
-            if (cur_losers == 3) {
+            if (cur_losers == PARTICIPANTS_IN_CELL) {
                 cur_losers = 0;
                 losers = begin_cell().store_ref(losers.end_cell());
             }
@@ -141,7 +140,7 @@ const int MAX_MAX_FACTOR = 655360;
             cur_losers += 1;
         }
 
-        if (cur_winners == 3) {
+        if (cur_winners == PARTICIPANTS_IN_CELL) {
             cur_winners = 0;
             winners = begin_cell().store_ref(winners.end_cell());
         }
@@ -225,14 +224,12 @@ const int MAX_MAX_FACTOR = 655360;
     if (op == 0x5ce28eea) {
         ;; throw query_id
         in_msg_body~load_uint(64);
-        (slice address, int tons) = extract_address_and_tons(full_message);
-        participate(address, tons, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
+        participate(extract_address(full_message), msg_value, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
     }
     if (op == 0x207fa5f5) {
         int query_id = in_msg_body~load_uint(64);
-        (slice address, int tons) = extract_address_and_tons(full_message);
         (int total_winners, int total_effective_stake, int unused_stake) = try_elect();
-        send_message(address, tons, query_id, total_winners, total_effective_stake, unused_stake);
+        send_message(extract_address(full_message), msg_value, query_id, total_winners, total_effective_stake, unused_stake);
     }
 }
 
