@@ -137,6 +137,7 @@ const int PARTICIPANTS_IN_CELL = 2;
             }
             losers = losers.store_uint(stake - effective_stake, STAKE_KEY_LEN).store_slice(address);
             cur_losers += 1;
+            losers_len += 1;
         }
 
         if (cur_winners == PARTICIPANTS_IN_CELL) {
@@ -147,7 +148,8 @@ const int PARTICIPANTS_IN_CELL = 2;
         cur_winners += 1;
     }
 
-    begin_cell().store_ref(winners.end_cell()).store_ref(losers.end_cell()).end_cell().set_data();
+    begin_cell().store_ref(winners.end_cell()).store_ref(losers.end_cell())
+            .store_uint(winners_len, 8).store_uint(losers_len, 8).end_cell().set_data();
 }
 
 (int, int, int) try_elect() impure inline {
@@ -239,14 +241,15 @@ const int PARTICIPANTS_IN_CELL = 2;
     slice storage_sl = get_data().begin_parse();
     (slice winners_sl, slice losers_sl) = (storage_sl~load_ref().begin_parse(), storage_sl~load_ref().begin_parse());
     (tuple winners, tuple losers) = (empty_tuple(), empty_tuple());
-    while (~ winners_sl.slice_empty?()) {
+    (int winners_len, int losers_len) = (storage_sl~load_uint(8), storage_sl~load_uint(8));
+    repeat (winners_len) {
         if (winners_sl.slice_data_empty?() & ~ winners_sl.slice_refs_empty?()) {
             winners_sl = winners_sl~load_ref().begin_parse();
         }
         (int stake, slice address) = (winners_sl~load_uint(STAKE_KEY_LEN), winners_sl~load_msg_addr());
         winners = tpush(winners, [address, stake]);
     }
-    while (~ losers_sl.slice_empty?()) {
+    repeat (losers_len) {
         if (losers_sl.slice_data_empty?() & ~ losers_sl.slice_refs_empty?()) {
             losers_sl = losers_sl~load_ref().begin_parse();
         }
