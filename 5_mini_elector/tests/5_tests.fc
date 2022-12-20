@@ -54,7 +54,7 @@ _ __test_get_address() {
 _ check_addr2stake(cell addr2stake, slice address, int stake) impure {
     (slice actual_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, address.slice_hash());
     throw_unless(100, success);
-    int actual_stake = actual_stake_sl~load_uint(18);
+    int actual_stake = actual_stake_sl~load_uint(120);
     throw_if(101, actual_stake != stake);
 }
 
@@ -125,18 +125,18 @@ _ __test_participate_two_zero_stakes() {
 _ __test_participate_two_max_stakes() {
     tuple addresses = util_addresses();
     ;; address 0
-    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 65535, 65536]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), (1 << 120) - 1, 65536]);
     (cell addr2stake, cell stake2info) = get_participate_dicts(1);
-    addr2stake.check_addr2stake(addresses.tuple_index(0), 65535);
-    stake2info.check_stake2info(addresses.tuple_index(0), 65535, 65536);
+    addr2stake.check_addr2stake(addresses.tuple_index(0), (1 << 120) - 1);
+    stake2info.check_stake2info(addresses.tuple_index(0), (1 << 120) - 1, 65536);
 
     ;; address 1
-    var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 65535, 66000]);
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(1), (1 << 120) - 1, 66000]);
     (cell addr2stake, cell stake2info) = get_participate_dicts(2);
-    addr2stake.check_addr2stake(addresses.tuple_index(0), 65535);
-    stake2info.check_stake2info(addresses.tuple_index(0), 65535, 65536);
-    addr2stake.check_addr2stake(addresses.tuple_index(1), 65535);
-    stake2info.check_stake2info(addresses.tuple_index(1), 65535, 66000);
+    addr2stake.check_addr2stake(addresses.tuple_index(0), (1 << 120) - 1);
+    stake2info.check_stake2info(addresses.tuple_index(0), (1 << 120) - 1, 65536);
+    addr2stake.check_addr2stake(addresses.tuple_index(1), (1 << 120) - 1);
+    stake2info.check_stake2info(addresses.tuple_index(1), (1 << 120) - 1, 66000);
 }
 
 _ __test_participate_two_max_stakes_in_one() {
@@ -154,7 +154,7 @@ _ __test_participate_two_max_stakes_in_one() {
     stake2info.check_stake2info(addresses.tuple_index(0), 131070, 66000);
 }
 
-_ __test_participate_two_more_than_max_stake() {
+_ __test_participate_two_more_than_max_stake_OUTDATED() {
     tuple addresses = util_addresses();
     ;; address 0
     var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 131072, 65536]);
@@ -195,7 +195,7 @@ _ __test_participate_260_queries() {
     }
 }
 
-_ __test_participate_260_queries_max_stake() {
+_ __test_participate_260_queries_max_stake_OUTDATED() {
     tuple addresses = util_addresses();
     int idx = 0;
     repeat (26) {
@@ -241,7 +241,7 @@ _ __test_participate_255_addresses_max_stakes() {
     int idx = 0;
     repeat (255) {
         slice address = get_address(idx);
-        int stake = (1 << 16) - 1;  ;; 65535
+        int stake = (1 << 120) - 1;
         int max_factor = 70000 + idx * 10;
         var (_, _) = invoke_method(participate, [address, stake, max_factor]);
 
@@ -253,7 +253,7 @@ _ __test_participate_255_addresses_max_stakes() {
     }
 }
 
-_ __test_participate_255_addresses_double_max_stakes() {
+_ __test_participate_255_addresses_double_max_stakes_OUTDATED() {
     ;; 256 addresses fails because we store participants as uint8.
     int idx = 0;
     repeat (255) {
