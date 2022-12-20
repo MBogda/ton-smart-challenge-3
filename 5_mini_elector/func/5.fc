@@ -158,7 +158,7 @@ const int PARTICIPANTS_IN_CELL = 2;
     repeat (participants) {
         (int index, slice address, int success) = stake2info~udict::delete_get_max(KEY_LEN);
         int min_stake = index >> STAKE_KEY_SUFFIX;
-        int max_factor = (index >> MAX_FACTOR_KEY_SUFFIX) & ((1 << MAX_FACTOR_KEY_LEN) - 1);
+        int max_factor = (index >> MAX_FACTOR_KEY_SUFFIX) % (1 << MAX_FACTOR_KEY_LEN);
         all_stakes += min_stake;
 
         tuple new_stakes = cons([min_stake, min_stake, max_factor, address], null());
