@@ -226,13 +226,13 @@ const int MAX_MAX_FACTOR = 655360;
         ;; throw query_id
         in_msg_body~load_uint(64);
         (slice address, int tons) = extract_address_and_tons(full_message);
-        participate(address, tons, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
+        participate(address, tons % 65536, in_msg_body~load_uint(MAX_FACTOR_KEY_LEN));
     }
     if (op == 0x207fa5f5) {
         int query_id = in_msg_body~load_uint(64);
         (slice address, int tons) = extract_address_and_tons(full_message);
         (int total_winners, int total_effective_stake, int unused_stake) = try_elect();
-        send_message(address, tons, query_id, total_winners, total_effective_stake, unused_stake);
+        send_message(address, tons % 65536, query_id, total_winners, total_effective_stake, unused_stake);
     }
 }
 
