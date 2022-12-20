@@ -129,6 +129,32 @@ _ __test_participate_two_more_than_max_stake() {
     stake2info.check_stake2info(addresses.tuple_index(1), 196607, 66000);
 }
 
+_ __test_participate_260_queries() {
+    tuple addresses = util_addresses();
+    int idx = 0;
+    repeat (26) {
+        int idx2 = 0;
+        repeat (10) {
+            int max_factor = 70000 + idx2 * 100 + idx;
+            var (_, _) = invoke_method(participate, [addresses.tuple_index(idx2), idx2 + 1, max_factor]);
+            idx2 += 1;
+        }
+
+        (cell addr2stake, cell stake2info) = get_participate_dicts(10);
+        int idx2 = 0;
+        repeat (10) {
+            int stake = (idx2 + 1) * (idx + 1);
+            int max_factor = 70000 + idx2 * 100 + idx;
+            addr2stake.check_addr2stake(addresses.tuple_index(idx2), stake);
+            stake2info.check_stake2info(addresses.tuple_index(idx2), stake, max_factor);
+            idx2 += 1;
+        }
+        idx += 1;
+    }
+}
+
+;; todo: 255 different addresses
+
 _ __test_try_elect() {
     __test_participate2();
     _ = invoke_method_expect_fail(try_elect, []);
