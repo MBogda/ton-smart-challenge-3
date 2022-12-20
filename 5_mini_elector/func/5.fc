@@ -162,8 +162,8 @@ const int PARTICIPANTS_IN_CELL = 2;
     tuple unused_stakes = null();
     int max_effective_stakes = 0;
     int max_winners = 0;
-;;     while (~ stake2info.dict_empty?()) {    ;; todo optimization: check that repeat is cheaper
-    repeat (participants) {
+    while (~ stake2info.dict_empty?()) {    ;; todo optimization: check that repeat is cheaper
+;;     repeat (participants) {
         (int index, slice info, int success) = stake2info~udict::delete_get_max(KEY_LEN);
         int max_factor = info~load_uint(MAX_FACTOR_KEY_LEN);
         int min_stake = index >> STAKE_KEY_SUFFIX;
@@ -183,7 +183,7 @@ const int PARTICIPANTS_IN_CELL = 2;
         }
 
         last_winners += 1;
-        if ((new_effective_stakes > max_effective_stakes) & (last_winners >= 5)) {  ;; todo? maybe >=
+        if ((new_effective_stakes > max_effective_stakes) & (last_winners >= 5)) {
             max_stakes = new_stakes;
             unused_stakes = null();
             max_effective_stakes = new_effective_stakes;
