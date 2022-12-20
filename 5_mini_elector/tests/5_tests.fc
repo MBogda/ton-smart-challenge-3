@@ -195,6 +195,30 @@ _ __test_participate_260_queries() {
     }
 }
 
+_ __test_participate_260_queries_max_stake() {
+    tuple addresses = util_addresses();
+    int idx = 0;
+    repeat (26) {
+        int idx2 = 0;
+        repeat (10) {
+            int max_factor = 70000 + idx2 * 100 + idx;
+            var (_, _) = invoke_method(participate, [addresses.tuple_index(idx2), 6553, max_factor]);
+            idx2 += 1;
+        }
+
+        (cell addr2stake, cell stake2info) = get_participate_dicts(10);
+        int idx2 = 0;
+        repeat (10) {
+            int stake = 6553 * (idx + 1);
+            int max_factor = 70000 + idx2 * 100 + idx;
+            addr2stake.check_addr2stake(addresses.tuple_index(idx2), stake);
+            stake2info.check_stake2info(addresses.tuple_index(idx2), stake, max_factor);
+            idx2 += 1;
+        }
+        idx += 1;
+    }
+}
+
 _ __test_participate_256_addresses() {
     int idx = 0;
     repeat (256) {
