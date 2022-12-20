@@ -230,6 +230,8 @@ _ __test_participate_256_addresses() {
         (cell addr2stake, cell stake2info) = get_participate_dicts(idx + 1);
         addr2stake.check_addr2stake(address, stake);
         stake2info.check_stake2info(address, stake, max_factor);
+
+        idx += 1;
     }
 }
 
