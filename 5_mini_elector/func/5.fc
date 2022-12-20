@@ -111,51 +111,40 @@ const int PARTICIPANTS_IN_CELL = 2;
 
 ;; =============== try_elect =============================
 
-(int) compute_stake_bits(int stake) inline {
-    if (stake == 0) {
-        return 4;
-    }
-
-    int bytes = 1;
-    repeat (14) {
-        if (stake < 1 << bytes) {
-            return bytes * 8 + 4;
-        }
-        bytes += 1;
-    }
-
-    return 124;
-}
-
 () store_winners_losers(tuple max_stakes, tuple unused_stakes, int winners_len, int losers_len) impure inline {
     {-
       cell-list of winners, cell-list of unused. 2 items per cell.
     -}
     builder winners = begin_cell();
+    int cur_winners = 0;
     builder losers = begin_cell();
+    int cur_losers = 0;
     repeat (losers_len) {
         [int stake, slice address] = unused_stakes~list_next();
-
-        int bits = compute_stake_bits(stake) + address.slice_bits();
-        if (bits > 1023 - losers.builder_bits()) {
+        if (cur_losers == PARTICIPANTS_IN_CELL) {
+            cur_losers = 0;
             losers = begin_cell().store_ref(losers.end_cell());
         }
-        losers = losers.store_coins(stake).store_slice(address);
+        losers = losers.store_uint(stake, STAKE_KEY_LEN).store_slice(address);
+        cur_losers += 1;
     }
     repeat (winners_len) {
         [int stake, int effective_stake, int max_factor, slice address] = max_stakes~list_next();
-        int bits = compute_stake_bits(stake) + address.slice_bits();
         if (stake > effective_stake) {
-            if (bits > 1023 - losers.builder_bits()) {
+            if (cur_losers == PARTICIPANTS_IN_CELL) {
+                cur_losers = 0;
                 losers = begin_cell().store_ref(losers.end_cell());
             }
-            losers = losers.store_coins(stake - effective_stake).store_slice(address);
+            losers = losers.store_uint(stake - effective_stake, STAKE_KEY_LEN).store_slice(address);
+            cur_losers += 1;
         }
 
-        if (bits > 1023 - winners.builder_bits()) {
+        if (cur_winners == PARTICIPANTS_IN_CELL) {
+            cur_winners = 0;
             winners = begin_cell().store_ref(winners.end_cell());
         }
-        winners = winners.store_coins(effective_stake).store_slice(address);
+        winners = winners.store_uint(effective_stake, STAKE_KEY_LEN).store_slice(address);
+        cur_winners += 1;
     }
 
     begin_cell().store_ref(winners.end_cell()).store_ref(losers.end_cell()).end_cell().set_data();
@@ -254,14 +243,14 @@ const int PARTICIPANTS_IN_CELL = 2;
         if (winners_sl.slice_data_empty?() & ~ winners_sl.slice_refs_empty?()) {
             winners_sl = winners_sl~load_ref().begin_parse();
         }
-        (int stake, slice address) = (winners_sl~load_coins(), winners_sl~load_msg_addr());
+        (int stake, slice address) = (winners_sl~load_uint(STAKE_KEY_LEN), winners_sl~load_msg_addr());
         winners = tpush(winners, [address, stake]);
     }
     while (~ losers_sl.slice_empty?()) {
         if (losers_sl.slice_data_empty?() & ~ losers_sl.slice_refs_empty?()) {
             losers_sl = losers_sl~load_ref().begin_parse();
         }
-        (int stake, slice address) = (losers_sl~load_coins(), losers_sl~load_msg_addr());
+        (int stake, slice address) = (losers_sl~load_uint(STAKE_KEY_LEN), losers_sl~load_msg_addr());
         losers = tpush(losers, [address, stake]);
     }
     return (winners, losers);
