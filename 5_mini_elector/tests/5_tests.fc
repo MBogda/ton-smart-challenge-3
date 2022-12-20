@@ -80,6 +80,23 @@ _ __test_participate3() {
     stake2info.check_stake2info(addresses.tuple_index(0), 20, 66000);
 }
 
+_ __test_participate_two_zero_stakes() {
+    tuple addresses = util_addresses();
+    ;; address 0
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(0), 0, 65536]);
+    (cell addr2stake, cell stake2info) = get_participate_dicts(1);
+    addr2stake.check_addr2stake(addresses.tuple_index(0), 0);
+    stake2info.check_stake2info(addresses.tuple_index(0), 0, 65536);
+
+    ;; address 1
+    var (_, _) = invoke_method(participate, [addresses.tuple_index(1), 0, 66000]);
+    (cell addr2stake, cell stake2info) = get_participate_dicts(2);
+    addr2stake.check_addr2stake(addresses.tuple_index(0), 0);
+    stake2info.check_stake2info(addresses.tuple_index(0), 0, 65536);
+    addr2stake.check_addr2stake(addresses.tuple_index(1), 0);
+    stake2info.check_stake2info(addresses.tuple_index(1), 0, 66000);
+}
+
 _ __test_participate_two_max_stakes() {
     tuple addresses = util_addresses();
     ;; address 0
