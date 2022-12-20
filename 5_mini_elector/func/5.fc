@@ -85,13 +85,7 @@ const int PARTICIPANTS_IN_CELL = 2;
       addr2stake: hash(address) -> stake
       stake2info: stake + hash(address)[:240] -> address, max_factor
     -}
-    if (max_factor < MIN_MAX_FACTOR) {
-        max_factor = MIN_MAX_FACTOR;
-    } else {
-        if (max_factor > MAX_MAX_FACTOR) {
-            max_factor = MAX_MAX_FACTOR;
-        }
-    }
+    max_factor = max(min(max_factor, MAX_MAX_FACTOR), MIN_MAX_FACTOR);
     (cell addr2stake, cell stake2info, int participants) = get_participants();
     ;; store addr2stake
     int addr_hash = address.slice_hash();
@@ -174,7 +168,7 @@ const int PARTICIPANTS_IN_CELL = 2;
         repeat (last_stakes_len) {
             [int stake, int effective_stake, max_factor, info] = last_stakes~list_next();
             int max_effective_stake = (max_factor * min_stake) / MIN_MAX_FACTOR;
-            effective_stake = min(effective_stake, max_effective_stake);    ;; todo? optimization: use if
+            effective_stake = min(effective_stake, max_effective_stake);
             new_stakes = cons([stake, effective_stake, max_factor, info], new_stakes);
             new_effective_stakes += effective_stake;
         }
