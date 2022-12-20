@@ -236,6 +236,53 @@ _ __test_participate_255_addresses() {
     }
 }
 
+_ __test_participate_255_addresses_max_stakes() {
+    ;; 256 addresses fails because we store participants as uint8.
+    int idx = 0;
+    repeat (255) {
+        slice address = get_address(idx);
+        int stake = (1 << 16) - 1;  ;; 65535
+        int max_factor = 70000 + idx * 10;
+        var (_, _) = invoke_method(participate, [address, stake, max_factor]);
+
+        (cell addr2stake, cell stake2info) = get_participate_dicts(idx + 1);
+        addr2stake.check_addr2stake(address, stake);
+        stake2info.check_stake2info(address, stake, max_factor);
+
+        idx += 1;
+    }
+}
+
+_ __test_participate_255_addresses_double_max_stakes() {
+    ;; 256 addresses fails because we store participants as uint8.
+    int idx = 0;
+    repeat (255) {
+        slice address = get_address(idx);
+        int stake = (1 << 16) - 1;  ;; 65535
+        int max_factor = 70000 + idx * 10;
+        var (_, _) = invoke_method(participate, [address, stake, max_factor]);
+
+        (cell addr2stake, cell stake2info) = get_participate_dicts(idx + 1);
+        addr2stake.check_addr2stake(address, stake);
+        stake2info.check_stake2info(address, stake, max_factor);
+
+        idx += 1;
+    }
+    int idx = 0;
+    repeat (255) {
+        slice address = get_address(idx);
+        int stake = (1 << 16) - 1;  ;; 65535
+        int max_factor = 80000 + idx * 10;
+        var (_, _) = invoke_method(participate, [address, stake, max_factor]);
+
+        (cell addr2stake, cell stake2info) = get_participate_dicts(255);
+        addr2stake.check_addr2stake(address, stake * 2);
+        stake2info.check_stake2info(address, stake * 2, max_factor);
+
+        idx += 1;
+    }
+}
+
 _ __test_try_elect() {
     __test_participate2();
     _ = invoke_method_expect_fail(try_elect, []);
