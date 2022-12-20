@@ -59,10 +59,10 @@ _ check_addr2stake(cell addr2stake, slice address, int stake) impure {
 }
 
 _ check_stake2info(cell stake2info, slice address, int stake, int max_factor) impure {
-    (slice actual_info_sl, int success) = stake2info.udict_get?(KEY_LEN, stake_and_hash(stake, address.slice_hash()));
+    (slice actual_info_sl, int success) = stake2info.udict_get?(KEY_LEN, stake_and_hash(stake, address.slice_hash(), max_factor));
     throw_unless(110, success);
-    int actual_max_factor = actual_info_sl~load_uint(24);
-    throw_if(111, actual_max_factor != max_factor);
+;;     int actual_max_factor = actual_info_sl~load_uint(24);
+;;     throw_if(111, actual_max_factor != max_factor);
     slice actual_address = actual_info_sl~load_bits(actual_info_sl.slice_bits());
     throw_if(112, address.slice_hash() != actual_address.slice_hash());
 }

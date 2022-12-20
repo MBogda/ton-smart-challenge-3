@@ -39,8 +39,9 @@
 
 const int KEY_LEN = 256;
 const int STAKE_KEY_LEN = 120;
-const int MAX_FACTOR_KEY_LEN = 24;
 const int STAKE_KEY_SUFFIX = KEY_LEN - STAKE_KEY_LEN;   ;; 136
+const int MAX_FACTOR_KEY_LEN = 24;
+const int MAX_FACTOR_KEY_SUFFIX = STAKE_KEY_SUFFIX - MAX_FACTOR_KEY_LEN;    ;; 112
 const int MIN_MAX_FACTOR = 65536;
 const int MAX_MAX_FACTOR = 655360;
 const int PARTICIPANTS_IN_CELL = 2;
@@ -56,18 +57,16 @@ const int PARTICIPANTS_IN_CELL = 2;
 
 ;; =============== participate =============================
 
-(slice) stake_to_slice(int stake) inline {
-    return begin_cell().store_uint(stake, STAKE_KEY_LEN).end_cell().begin_parse();
+(slice) stake_to_slice(int stake, int max_factor) inline {
+    return begin_cell().store_uint(stake, STAKE_KEY_LEN)
+            .store_uint(max_factor, MAX_FACTOR_KEY_LEN).end_cell().begin_parse();
 }
 
-(slice) info_to_slice(int max_factor, slice address) inline {
-    return begin_cell().store_uint(max_factor, MAX_FACTOR_KEY_LEN).store_slice(address).end_cell().begin_parse();
-}
-
-(int) stake_and_hash(int stake, int hash) inline {
+(int) stake_and_hash(int stake, int max_factor, int hash) inline {
     stake <<= STAKE_KEY_SUFFIX;
-    hash >>= STAKE_KEY_LEN;
-    return stake + hash;
+    max_factor <<= MAX_FACTOR_KEY_SUFFIX;
+    hash >>= STAKE_KEY_LEN + MAX_FACTOR_KEY_LEN;
+    return stake + max_factor + hash;
 }
 
 (cell, cell, int) get_participants() inline {
@@ -92,14 +91,15 @@ const int PARTICIPANTS_IN_CELL = 2;
     (slice old_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addr_hash);
     if (success) {
         int old_stake = old_stake_sl~load_uint(STAKE_KEY_LEN);
+        int old_max_factor = old_stake_sl~load_uint(MAX_FACTOR_KEY_LEN);
         stake += old_stake;
-        stake2info~udict_delete?(KEY_LEN, stake_and_hash(old_stake, addr_hash));
+        stake2info~udict_delete?(KEY_LEN, stake_and_hash(old_stake, old_max_factor, addr_hash));
     } else {
         participants += 1;
     }
-    addr2stake~udict_set(KEY_LEN, addr_hash, stake_to_slice(stake));
+    addr2stake~udict_set(KEY_LEN, addr_hash, stake_to_slice(stake, max_factor));
     ;; store stake2info
-    stake2info~udict_set(KEY_LEN, stake_and_hash(stake, addr_hash), info_to_slice(max_factor, address));
+    stake2info~udict_set(KEY_LEN, stake_and_hash(stake, max_factor, addr_hash), address);
     begin_cell().store_ref(addr2stake).store_ref(stake2info).store_uint(participants, 8).end_cell().set_data();
 }
 
@@ -156,20 +156,20 @@ const int PARTICIPANTS_IN_CELL = 2;
     int max_effective_stakes = 0;
     int max_winners = 0;
     repeat (participants) {
-        (int index, slice info, int success) = stake2info~udict::delete_get_max(KEY_LEN);
-        int max_factor = info~load_uint(MAX_FACTOR_KEY_LEN);
+        (int index, slice address, int success) = stake2info~udict::delete_get_max(KEY_LEN);
         int min_stake = index >> STAKE_KEY_SUFFIX;
+        int max_factor = (index >> MAX_FACTOR_KEY_SUFFIX) & ((1 << MAX_FACTOR_KEY_LEN) - 1);
         all_stakes += min_stake;
 
-        tuple new_stakes = cons([min_stake, min_stake, max_factor, info], null());
-        unused_stakes = cons([min_stake, info], unused_stakes);
+        tuple new_stakes = cons([min_stake, min_stake, max_factor, address], null());
+        unused_stakes = cons([min_stake, address], unused_stakes);
         int new_effective_stakes = min_stake;
         ;; go through all_stakes and update effective stakes
         repeat (last_stakes_len) {
-            [int stake, int effective_stake, max_factor, info] = last_stakes~list_next();
+            [int stake, int effective_stake, max_factor, address] = last_stakes~list_next();
             int max_effective_stake = (max_factor * min_stake) / MIN_MAX_FACTOR;
             effective_stake = min(effective_stake, max_effective_stake);
-            new_stakes = cons([stake, effective_stake, max_factor, info], new_stakes);
+            new_stakes = cons([stake, effective_stake, max_factor, address], new_stakes);
             new_effective_stakes += effective_stake;
         }
         last_stakes_len += 1;
