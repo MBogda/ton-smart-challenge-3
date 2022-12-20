@@ -18,6 +18,31 @@ forall X -> X tuple_index(tuple t, int index) asm "INDEXVAR";
     return result;
 }
 
+(slice) get_address(int addr_num) {
+    {- Get up to 1024 different addresses -}
+    builder address_bl = begin_cell()
+            .store_uint(0x4ff, 11)  ;; first 3 + 8 bit
+            .store_uint(0x3f, 6);      ;; last 256 bit
+    repeat (25) {
+        address_bl = address_bl.store_uint(addr_num, 10);
+    }
+    return address_bl.end_cell().begin_parse();
+}
+
+_ __test_get_address() {
+    slice address = get_address(0);
+    slice address_literal = "Ef_8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJeo"a;
+    throw_if(100, address.slice_hash() != address_literal.slice_hash());
+
+    slice address = get_address(1);
+    slice address_literal = "Ef_8AQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEAQBAEATMp"a;
+    throw_if(101, address.slice_hash() != address_literal.slice_hash());
+
+    slice address = get_address(0x3ff);
+    slice address_literal = "Ef___________________________________________7Sg"a;
+    throw_if(101, address.slice_hash() != address_literal.slice_hash());
+}
+
 (cell, cell) get_participate_dicts(int expected_participants) {
     slice storage_sl = get_data().begin_parse();
     throw_if(120, expected_participants != storage_sl~load_uint(8));
