@@ -69,6 +69,11 @@ const int PARTICIPANTS_IN_CELL = 2;
     return stake + max_factor + hash;
 }
 
+(int) addr_to_255(slice address) inline {
+    (_, int addr_hash) = address.skip_bits(address.slice_bits() - KEY_LEN).load_uint(KEY_LEN);
+    return addr_hash;
+}
+
 (cell, cell, int) get_participants() inline {
     slice storage_sl = get_data().begin_parse();
     (cell addr2stake, cell stake2info, int participants) = (null(), null(), 0);
@@ -87,7 +92,8 @@ const int PARTICIPANTS_IN_CELL = 2;
     max_factor = max(min(max_factor, MAX_MAX_FACTOR), MIN_MAX_FACTOR);
     (cell addr2stake, cell stake2info, int participants) = get_participants();
     ;; store addr2stake
-    int addr_hash = address.slice_hash();
+;;     int addr_hash = address.slice_hash();
+    int addr_hash = address.addr_to_255();
     (slice old_stake_sl, int success) = addr2stake.udict_get?(KEY_LEN, addr_hash);
     if (success) {
         int old_stake = old_stake_sl~load_uint(STAKE_KEY_LEN);
