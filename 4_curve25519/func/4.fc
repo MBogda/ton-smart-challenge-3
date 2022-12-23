@@ -17,15 +17,15 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
 ;; todo optimization: check gas usage for inline_ref
 ;; (int, int) muldivmod(int a, int b, int s) inline asm "MULDIVMOD";
 
-(int) add_(int a, int b) inline_ref {
+(int) add_(int a, int b) inline {
     return (a + b) % p;
 }
 
-(int) sub_(int a, int b) inline_ref {
+(int) sub_(int a, int b) inline {
     return (a - b) % p;
 }
 
-(int) mul_(int a, int b) inline_ref {
+(int) mul_(int a, int b) inline {
     (_, int r) = muldivmod(a, b, p);
     return r;
 }
@@ -145,7 +145,7 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
    return x2*z2^(p-2)
 -}
 
-(int, int) swap_(int a, int b, int bit) inline_ref {
+(int, int) swap_(int a, int b, int bit) inline {
     return bit ? (b, a) : (a, b);
 }
 
