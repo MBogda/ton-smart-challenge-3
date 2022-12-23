@@ -74,10 +74,8 @@ builder write_current_number(int current_number) inline {
     builder storage_bl = write_current_number(current_number + 1);
     if (current_number < 4) {
         ;; 1, 2 or 3
-        repeat (3) {
-            ifnot (storage_sl.slice_refs_empty?()) {
-                storage_bl = storage_bl.pack(storage_sl~unpack());
-            }
+        repeat (current_number) {
+            storage_bl = storage_bl.pack(storage_sl~unpack());
         }
         storage_bl = storage_bl.pack(tupled_msg);
         storage_bl.end_cell().set_data();
@@ -85,10 +83,8 @@ builder write_current_number(int current_number) inline {
         if (current_number < 7) {
             ;; 5, 6
             storage_bl = storage_bl.store_ref(storage_sl~load_ref());    ;; first node as is
-            repeat (2) {
-                ifnot (storage_sl.slice_refs_empty?()) {
-                    storage_bl = storage_bl.pack(storage_sl~unpack());
-                }
+            repeat (current_number - 4) {
+                storage_bl = storage_bl.pack(storage_sl~unpack());
             }
             storage_bl = storage_bl.pack(tupled_msg);
             storage_bl.end_cell().set_data();
@@ -100,10 +96,10 @@ builder write_current_number(int current_number) inline {
                 storage_bl = storage_bl.store_ref(storage_sl~load_ref());    ;; second node as is
 
                 int third_num = 1;
-                slice third_sl = storage_sl~load_ref().begin_parse();
                 builder third_bl = begin_cell();
                 ;; possible 9th message
-                ifnot (third_sl.slice_refs_empty?()) {
+                if (current_number == 9) {
+                    slice third_sl = storage_sl~load_ref().begin_parse();
                     third_bl = third_bl.pack(third_sl~unpack());
                     third_num += 1;
                 }
