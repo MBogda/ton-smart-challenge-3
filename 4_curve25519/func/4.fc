@@ -34,12 +34,12 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
     int exp = 1;
     while (bit > 0) {
         int bit_one = bit & b;  ;; current bit is 1
-        if (bit_one | (exp != 1)) {     ;; todo optimization: check without skipping
+;;         if (bit_one | (exp != 1)) {     ;; todo optimization: check without skipping
             exp = mul_(exp, exp);
             if (bit_one) {
                 exp = mul_(exp, a);
             }
-        }
+;;         }
         bit >>= 1;
     }
     return exp;
@@ -155,7 +155,7 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
     int bit = 1 << 255;
     while (bit > 0) {
         int bit_one = bit & factor;
-;;         if (bit_one | (z2 != 0)) {     ;; todo optimization: check without skipping
+        if (bit_one | (z2 != 0)) {     ;; todo optimization: check without skipping
             (x2, x3) = swap_(x2, x3, bit_one);
             (z2, z3) = swap_(z2, z3, bit_one);
 
@@ -170,7 +170,7 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
 
             (x2, x3) = swap_(x2, x3, bit_one);
             (z2, z3) = swap_(z2, z3, bit_one);
-;;         }
+        }
         bit >>= 1;
     }
     return mul_(x2, exp_(z2, p - 2));
