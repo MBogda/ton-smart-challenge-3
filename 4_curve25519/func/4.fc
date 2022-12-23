@@ -14,7 +14,6 @@ const A = 486662;
 const p = (1 << 255) - 19;   ;; 2^255 - 19
 
 ;; =============== Field arithmetic functions =============================
-;; todo optimization: check gas usage for inline_ref
 ;; (int, int) muldivmod(int a, int b, int s) inline asm "MULDIVMOD";
 
 (int) add_(int a, int b) inline {
@@ -92,7 +91,6 @@ const p = (1 << 255) - 19;   ;; 2^255 - 19
 (int) div_(int a, int b) inline {
     (int s, int t) = extended_gcd(b, p);
     return mul_(a, s);
-;;     return mul_(a, s % p);   ;; todo: delete if unnecessary
 }
 
 ;; =============== Montgomery curve addition and doubling =============================
